@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { readApiFailure, formatApiFailure } from "../lib/apiError";
 
 interface TokenItem {
     address: string;
@@ -49,7 +50,11 @@ export default function App() {
 
             console.log("Status:", res.status);
 
-            if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+            if (!res.ok) {
+                const failure = await readApiFailure("Birdeye", res);
+                console.error("Echec API Birdeye:", failure);
+                throw new Error(formatApiFailure(failure));
+            }
 
             const data = await res.json();
             console.log("Data:", data);

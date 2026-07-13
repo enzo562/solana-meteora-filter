@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { readApiFailure, formatApiFailure } from "../lib/apiError";
 
 interface TokenMetrics {
     address: string;
@@ -35,7 +36,7 @@ interface MeteoraPool {
     name: string;
     token_x: TokenMetrics;
     token_y: TokenMetrics;
-    created_at: number; // Unix timestamp (secondes)
+    created_at: number; // Unix timestamp (millisecondes)
     tvl: number;
     current_price: number;
     apr: number;
@@ -58,8 +59,8 @@ interface PoolsResponse {
 
 const POLL_INTERVAL_MS = 15_000;
 
-function formatAge(createdAtUnix: number): string {
-    const diffSeconds = Date.now() / 1000 - createdAtUnix;
+function formatAge(createdAtMs: number): string {
+    const diffSeconds = (Date.now() - createdAtMs) / 1000;
 
     if (diffSeconds < 60) return `${Math.floor(diffSeconds)}s`;
     if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}min`;
@@ -82,7 +83,11 @@ export default function PoolsPage() {
 
             const res = await fetch(url, { headers: { accept: "application/json" } });
 
-            if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+            if (!res.ok) {
+                const failure = await readApiFailure("Meteora", res);
+                console.error("Echec API Meteora:", failure);
+                throw new Error(formatApiFailure(failure));
+            }
 
             const json: PoolsResponse = await res.json();
             setPools(json.data);
