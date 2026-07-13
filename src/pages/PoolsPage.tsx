@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { readApiFailure, formatApiFailure } from "../lib/apiError";
 
 interface TokenMetrics {
@@ -73,7 +73,9 @@ export default function PoolsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-    const [seenAddresses, setSeenAddresses] = useState<Set<string>>(new Set());
+    const [newAddresses, setNewAddresses] = useState<Set<string>>(new Set());
+    // Persistant entre fetchs, sans déclencher de rendu : sert à repérer les pools inédites.
+    const seenAddresses = useRef<Set<string>>(new Set());
 
     const fetchNewPools = useCallback(async () => {
         setLoading(true);
@@ -93,11 +95,18 @@ export default function PoolsPage() {
             setPools(json.data);
             setLastUpdate(new Date());
 
-            setSeenAddresses((prev) => {
-                const updated = new Set(prev);
-                json.data.forEach((p) => updated.add(p.address));
-                return updated;
-            });
+            // Au premier chargement, tout est "déjà vu" : on ne signale rien.
+            // Ensuite, une pool absente du set est nouvelle depuis la dernière MàJ.
+            const seen = seenAddresses.current;
+            const isFirstLoad = seen.size === 0;
+            const fresh = new Set<string>();
+            if (!isFirstLoad) {
+                json.data.forEach((p) => {
+                    if (!seen.has(p.address)) fresh.add(p.address);
+                });
+            }
+            json.data.forEach((p) => seen.add(p.address));
+            setNewAddresses(fresh);
         } catch (e) {
             setError(e instanceof Error ? e.message : "Erreur inconnue");
         } finally {
@@ -112,47 +121,65 @@ export default function PoolsPage() {
     }, [fetchNewPools]);
 
     return (
-        <div style={{ fontFamily: "monospace", padding: "1rem" }}>
-            <h1>Nouvelles Pools Meteora</h1>
-            <p>
-                Rafraîchissement auto toutes les {POLL_INTERVAL_MS / 1000}s
-                {lastUpdate && ` — dernière mise à jour: ${lastUpdate.toLocaleTimeString()}`}
-            </p>
-            <button onClick={fetchNewPools} disabled={loading}>
-                {loading ? "Chargement..." : "Rafraîchir"}
-            </button>
-            {error && <p style={{ color: "red" }}>Erreur: {error}</p>}
+        <div className="page">
+            <header className="page-header">
+                <div>
+                    <h1>Nouvelles Pools Meteora</h1>
+                    <p className="subtitle">
+                        Rafraîchissement auto toutes les {POLL_INTERVAL_MS / 1000}s
+                        {lastUpdate && ` · dernière MàJ ${lastUpdate.toLocaleTimeString()}`}
+                    </p>
+                </div>
+                <div className="header-actions">
+                    <span className="status"><span className="pulse" />Auto · {POLL_INTERVAL_MS / 1000}s</span>
+                    <button className="btn" onClick={fetchNewPools} disabled={loading}>
+                        {loading ? "Chargement…" : "Rafraîchir"}
+                    </button>
+                </div>
+            </header>
 
-            <table border={1} cellPadding={6} style={{ marginTop: "1rem", width: "100%" }}>
-                <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Adresse</th>
-                    <th>Bin Step</th>
-                    <th>Frais (%)</th>
-                    <th>Liquidité</th>
-                    <th>Âge</th>
-                    <th>Lien</th>
-                </tr>
-                </thead>
-                <tbody>
-                {pools.map((p) => (
-                    <tr key={p.address}>
-                        <td>{p.name}</td>
-                        <td>{p.address.slice(0, 8)}...</td>
-                        <td>{p.pool_config.bin_step}</td>
-                        <td>{p.pool_config.base_fee_pct}%</td>
-                        <td>${p.tvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                        <td>{formatAge(p.created_at)}</td>
-                        <td>
-                            <a href={`https://app.meteora.ag/dlmm/${p.address}`} target="_blank" rel="noreferrer">
-                                Meteora
-                            </a>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            {error && <div className="alert alert-error">Erreur : {error}</div>}
+
+            <div className="table-wrap">
+                <div className="table-scroll">
+                    <table className="data-table">
+                        <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Adresse</th>
+                            <th className="num">Bin Step</th>
+                            <th className="num">Frais</th>
+                            <th className="num">Liquidité</th>
+                            <th className="num">Âge</th>
+                            <th>Lien</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {pools.map((p) => (
+                            <tr key={p.address} className={newAddresses.has(p.address) ? "row-new" : undefined}>
+                                <td className="sym">
+                                    {p.name}
+                                    {newAddresses.has(p.address) && <span className="badge badge-new">NEW</span>}
+                                </td>
+                                <td className="mono">{p.address.slice(0, 8)}…</td>
+                                <td className="num">{p.pool_config.bin_step}</td>
+                                <td className="num">{p.pool_config.base_fee_pct}%</td>
+                                <td className="num">${p.tvl.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                                <td className="num"><span className="badge">{formatAge(p.created_at)}</span></td>
+                                <td>
+                                    <a className="link-btn" href={`https://app.meteora.ag/dlmm/${p.address}`} target="_blank" rel="noreferrer">
+                                        Meteora ↗
+                                    </a>
+                                </td>
+                            </tr>
+                        ))}
+                        {!loading && pools.length === 0 && (
+                            <tr><td className="table-empty" colSpan={7}>Aucune pool pour le moment.</td></tr>
+                        )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

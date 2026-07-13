@@ -105,54 +105,67 @@ export default function DexScreenerPage() {
     }, [fetchTokens]);
 
     return (
-        <div style={{ fontFamily: "monospace", padding: "1rem" }}>
-            <h1>DexScreener (sans clé API)</h1>
-            <p>
-                Volume 5min ≥ ${MIN_VOLUME_5M.toLocaleString()} | Market Cap ≤ ${MAX_MARKET_CAP.toLocaleString()} —
-                agrégé sur recherches, filtré côté client
-            </p>
-            <button onClick={fetchTokens} disabled={loading}>
-                {loading ? "Chargement..." : "Rafraîchir"}
-            </button>
-            {error && <p style={{ color: "red" }}>Erreur: {error}</p>}
-            {!error && !loading && tokens.length === 0 && (
-                <p style={{ color: "#888" }}>Aucune paire ne passe le filtre volume 5m pour le moment.</p>
-            )}
+        <div className="page">
+            <header className="page-header">
+                <div>
+                    <h1>DexScreener <span className="badge">sans clé API</span></h1>
+                    <p className="subtitle">
+                        Volume 5min ≥ <code>${MIN_VOLUME_5M.toLocaleString()}</code> · Market Cap ≤{" "}
+                        <code>${MAX_MARKET_CAP.toLocaleString()}</code> · agrégé sur recherches, filtré côté client
+                    </p>
+                </div>
+                <div className="header-actions">
+                    <span className="status"><span className="pulse" />Auto · {POLL_INTERVAL_MS / 1000}s</span>
+                    <button className="btn" onClick={fetchTokens} disabled={loading}>
+                        {loading ? "Chargement…" : "Rafraîchir"}
+                    </button>
+                </div>
+            </header>
 
-            <table border={1} cellPadding={6} style={{ marginTop: "1rem", width: "100%" }}>
-                <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Volume 5m ($)</th>
-                    <th>Market Cap ($)</th>
-                    <th>Liquidité ($)</th>
-                    <th>Prix ($)</th>
-                    <th>Âge</th>
-                    <th>Lien</th>
-                </tr>
-                </thead>
-                <tbody>
-                {tokens.map((t) => (
-                    <tr key={t.pairAddress}>
-                        <td>{t.symbol}</td>
-                        <td>{Math.round(t.volume5m).toLocaleString()}</td>
-                        <td>{Math.round(t.marketCap).toLocaleString()}</td>
-                        <td>{Math.round(t.liquidity).toLocaleString()}</td>
-                        <td>{t.priceUsd}</td>
-                        <td>{formatAge(t.createdAt)}</td>
-                        <td>
-                            <a
-                                href={`https://dexscreener.com/solana/${t.pairAddress}`}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                DexScreener
-                            </a>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            {error && <div className="alert alert-error">Erreur : {error}</div>}
+
+            <div className="table-wrap">
+                <div className="table-scroll">
+                    <table className="data-table">
+                        <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th className="num">Volume 5m ($)</th>
+                            <th className="num">Market Cap ($)</th>
+                            <th className="num">Liquidité ($)</th>
+                            <th className="num">Prix ($)</th>
+                            <th className="num">Âge</th>
+                            <th>Lien</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {tokens.map((t) => (
+                            <tr key={t.pairAddress}>
+                                <td className="sym">{t.symbol}</td>
+                                <td className="num">{Math.round(t.volume5m).toLocaleString()}</td>
+                                <td className="num">{Math.round(t.marketCap).toLocaleString()}</td>
+                                <td className="num">{Math.round(t.liquidity).toLocaleString()}</td>
+                                <td className="num">{t.priceUsd}</td>
+                                <td className="num"><span className="badge">{formatAge(t.createdAt)}</span></td>
+                                <td>
+                                    <a
+                                        className="link-btn"
+                                        href={`https://dexscreener.com/solana/${t.pairAddress}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        DexScreener ↗
+                                    </a>
+                                </td>
+                            </tr>
+                        ))}
+                        {!error && !loading && tokens.length === 0 && (
+                            <tr><td className="table-empty" colSpan={7}>Aucune paire ne passe le filtre volume 5m pour le moment.</td></tr>
+                        )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

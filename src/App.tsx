@@ -5,22 +5,31 @@ import GeckoTerminalPage from "./pages/GeckoTerminalPage";
 import DexScreenerPage from "./pages/DexScreenerPage";
 import SolanaTrackerPage from "./pages/SolanaTrackerPage";
 
+const NAV_ITEMS = [
+  { to: "/filter", label: "Birdeye" },
+  { to: "/gecko", label: "GeckoTerminal" },
+  { to: "/dexscreener", label: "DexScreener" },
+  { to: "/solanatracker", label: "Solana Tracker" },
+  { to: "/pools", label: "Pools Meteora" },
+];
+
 function Nav() {
   const location = useLocation();
-
-  const linkStyle = (path: string): React.CSSProperties => ({
-    marginRight: "1rem",
-    fontWeight: location.pathname === path ? "bold" : "normal",
-    textDecoration: location.pathname === path ? "underline" : "none",
-  });
+  const isActive = (path: string) =>
+    location.pathname === path || (path === "/filter" && location.pathname === "/");
 
   return (
-      <nav style={{ padding: "1rem", borderBottom: "1px solid #ccc", fontFamily: "monospace" }}>
-        <Link to="/filter" style={linkStyle("/filter")}>Filtrage Tokens (Birdeye)</Link>
-        <Link to="/gecko" style={linkStyle("/gecko")}>GeckoTerminal</Link>
-        <Link to="/dexscreener" style={linkStyle("/dexscreener")}>DexScreener</Link>
-        <Link to="/solanatracker" style={linkStyle("/solanatracker")}>Solana Tracker</Link>
-        <Link to="/pools" style={linkStyle("/pools")}>Nouvelles Pools Meteora</Link>
+      <nav className="nav">
+        <span className="nav-brand"><span className="dot" />Solana Scout</span>
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            className={`nav-link${isActive(item.to) ? " active" : ""}`}
+          >
+            {item.label}
+          </Link>
+        ))}
       </nav>
   );
 }

@@ -74,48 +74,65 @@ export default function App() {
     }, [fetchTokens]);
 
     return (
-        <div style={{ fontFamily: "monospace", padding: "1rem" }}>
-            <h1>Solana Token Filter</h1>
-            <p>
-                Volume 5min ≥ ${MIN_VOLUME_5M.toLocaleString()} | Market Cap ≤ ${MAX_MARKET_CAP.toLocaleString()}
-            </p>
-            <button onClick={fetchTokens} disabled={loading}>
-                {loading ? "Chargement..." : "Rafraîchir"}
-            </button>
-            {error && <p style={{ color: "red" }}>Erreur: {error}</p>}
+        <div className="page">
+            <header className="page-header">
+                <div>
+                    <h1>Filtrage Tokens · Birdeye</h1>
+                    <p className="subtitle">
+                        Volume 5min ≥ <code>${MIN_VOLUME_5M.toLocaleString()}</code> · Market Cap ≤{" "}
+                        <code>${MAX_MARKET_CAP.toLocaleString()}</code>
+                    </p>
+                </div>
+                <div className="header-actions">
+                    <span className="status"><span className="pulse" />Auto · 30s</span>
+                    <button className="btn" onClick={fetchTokens} disabled={loading}>
+                        {loading ? "Chargement…" : "Rafraîchir"}
+                    </button>
+                </div>
+            </header>
 
-            <table border={1} cellPadding={6} style={{ marginTop: "1rem", width: "100%" }}>
-                <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Volume 5m ($)</th>
-                    <th>Market Cap ($)</th>
-                    <th>Prix ($)</th>
-                    <th>Âge</th>
-                    <th>Lien</th>
-                </tr>
-                </thead>
-                <tbody>
-                {tokens.map((t) => (
-                    <tr key={t.address}>
-                        <td>{t.symbol}</td>
-                        <td>{t.volume_5m_usd?.toLocaleString()}</td>
-                        <td>{t.market_cap?.toLocaleString()}</td>
-                        <td>{t.price}</td>
-                        <td>{formatAge(t.recent_listing_time)}</td>
-                        <td>
-                            <a
-                                href={`https://dexscreener.com/solana/${t.address}`}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                DexScreener
-                            </a>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            {error && <div className="alert alert-error">Erreur : {error}</div>}
+
+            <div className="table-wrap">
+                <div className="table-scroll">
+                    <table className="data-table">
+                        <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th className="num">Volume 5m ($)</th>
+                            <th className="num">Market Cap ($)</th>
+                            <th className="num">Prix ($)</th>
+                            <th className="num">Âge</th>
+                            <th>Lien</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {tokens.map((t) => (
+                            <tr key={t.address}>
+                                <td className="sym">{t.symbol}</td>
+                                <td className="num">{t.volume_5m_usd?.toLocaleString()}</td>
+                                <td className="num">{t.market_cap?.toLocaleString()}</td>
+                                <td className="num">{t.price}</td>
+                                <td className="num"><span className="badge">{formatAge(t.recent_listing_time)}</span></td>
+                                <td>
+                                    <a
+                                        className="link-btn"
+                                        href={`https://dexscreener.com/solana/${t.address}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        DexScreener ↗
+                                    </a>
+                                </td>
+                            </tr>
+                        ))}
+                        {!loading && tokens.length === 0 && (
+                            <tr><td className="table-empty" colSpan={6}>Aucun token pour le moment.</td></tr>
+                        )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

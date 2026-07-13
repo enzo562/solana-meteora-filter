@@ -95,52 +95,65 @@ export default function GeckoTerminalPage() {
     }, [fetchTokens]);
 
     return (
-        <div style={{ fontFamily: "monospace", padding: "1rem" }}>
-            <h1>GeckoTerminal (sans clé API)</h1>
-            <p>
-                Volume 5min ≥ ${MIN_VOLUME_5M.toLocaleString()} | Market Cap ≤ ${MAX_MARKET_CAP.toLocaleString()} —
-                tri 5m côté client
-            </p>
-            <button onClick={fetchTokens} disabled={loading}>
-                {loading ? "Chargement..." : "Rafraîchir"}
-            </button>
-            {error && <p style={{ color: "red" }}>Erreur: {error}</p>}
-            {!error && !loading && tokens.length === 0 && (
-                <p style={{ color: "#888" }}>Aucun pool ne passe le filtre volume 5m pour le moment.</p>
-            )}
+        <div className="page">
+            <header className="page-header">
+                <div>
+                    <h1>GeckoTerminal <span className="badge">sans clé API</span></h1>
+                    <p className="subtitle">
+                        Volume 5min ≥ <code>${MIN_VOLUME_5M.toLocaleString()}</code> · Market Cap ≤{" "}
+                        <code>${MAX_MARKET_CAP.toLocaleString()}</code> · tri 5m côté client
+                    </p>
+                </div>
+                <div className="header-actions">
+                    <span className="status"><span className="pulse" />Auto · {POLL_INTERVAL_MS / 1000}s</span>
+                    <button className="btn" onClick={fetchTokens} disabled={loading}>
+                        {loading ? "Chargement…" : "Rafraîchir"}
+                    </button>
+                </div>
+            </header>
 
-            <table border={1} cellPadding={6} style={{ marginTop: "1rem", width: "100%" }}>
-                <thead>
-                <tr>
-                    <th>Pool</th>
-                    <th>Volume 5m ($)</th>
-                    <th>Market Cap ($)</th>
-                    <th>Prix ($)</th>
-                    <th>Âge</th>
-                    <th>Lien</th>
-                </tr>
-                </thead>
-                <tbody>
-                {tokens.map((t) => (
-                    <tr key={t.address}>
-                        <td>{t.name}</td>
-                        <td>{Math.round(t.volume5m).toLocaleString()}</td>
-                        <td>{Math.round(t.marketCap).toLocaleString()}</td>
-                        <td>{t.priceUsd}</td>
-                        <td>{formatAge(t.createdAt)}</td>
-                        <td>
-                            <a
-                                href={`https://www.geckoterminal.com/solana/pools/${t.address}`}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                GeckoTerminal
-                            </a>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            {error && <div className="alert alert-error">Erreur : {error}</div>}
+
+            <div className="table-wrap">
+                <div className="table-scroll">
+                    <table className="data-table">
+                        <thead>
+                        <tr>
+                            <th>Pool</th>
+                            <th className="num">Volume 5m ($)</th>
+                            <th className="num">Market Cap ($)</th>
+                            <th className="num">Prix ($)</th>
+                            <th className="num">Âge</th>
+                            <th>Lien</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {tokens.map((t) => (
+                            <tr key={t.address}>
+                                <td className="sym">{t.name}</td>
+                                <td className="num">{Math.round(t.volume5m).toLocaleString()}</td>
+                                <td className="num">{Math.round(t.marketCap).toLocaleString()}</td>
+                                <td className="num">{t.priceUsd}</td>
+                                <td className="num"><span className="badge">{formatAge(t.createdAt)}</span></td>
+                                <td>
+                                    <a
+                                        className="link-btn"
+                                        href={`https://www.geckoterminal.com/solana/pools/${t.address}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        GeckoTerminal ↗
+                                    </a>
+                                </td>
+                            </tr>
+                        ))}
+                        {!error && !loading && tokens.length === 0 && (
+                            <tr><td className="table-empty" colSpan={6}>Aucun pool ne passe le filtre volume 5m pour le moment.</td></tr>
+                        )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }

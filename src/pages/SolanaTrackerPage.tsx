@@ -97,12 +97,15 @@ export default function SolanaTrackerPage() {
 
     if (!API_KEY) {
         return (
-            <div style={{ fontFamily: "monospace", padding: "1rem" }}>
-                <h1>Solana Tracker</h1>
-                <p style={{ color: "#b36b00" }}>
-                    ⚠️ Clé API manquante. Cette API nécessite une clé (header <code>x-api-key</code>).
-                </p>
-                <ol>
+            <div className="page">
+                <header className="page-header">
+                    <div>
+                        <h1>Solana Tracker</h1>
+                        <p className="subtitle">Cette API nécessite une clé (header <code>x-api-key</code>).</p>
+                    </div>
+                </header>
+                <div className="alert alert-warn">⚠️ Clé API manquante.</div>
+                <ol className="hint" style={{ textAlign: "left", maxWidth: 560 }}>
                     <li>Crée une clé sur <a href="https://www.solanatracker.io/" target="_blank" rel="noreferrer">solanatracker.io</a></li>
                     <li>Ajoute dans <code>.env</code> : <code>VITE_SOLANATRACKER_API_KEY = ta_cle</code></li>
                     <li>Redémarre le serveur dev (<code>npm run dev</code>)</li>
@@ -112,42 +115,59 @@ export default function SolanaTrackerPage() {
     }
 
     return (
-        <div style={{ fontFamily: "monospace", padding: "1rem" }}>
-            <h1>Solana Tracker (clé API)</h1>
-            <p>Tendances 5 min | Market Cap ≤ ${MAX_MARKET_CAP.toLocaleString()}</p>
-            <button onClick={fetchTokens} disabled={loading}>
-                {loading ? "Chargement..." : "Rafraîchir"}
-            </button>
-            {error && <p style={{ color: "red" }}>Erreur: {error}</p>}
+        <div className="page">
+            <header className="page-header">
+                <div>
+                    <h1>Solana Tracker <span className="badge">clé API</span></h1>
+                    <p className="subtitle">
+                        Tendances 5 min · Market Cap ≤ <code>${MAX_MARKET_CAP.toLocaleString()}</code>
+                    </p>
+                </div>
+                <div className="header-actions">
+                    <span className="status"><span className="pulse" />Auto · {POLL_INTERVAL_MS / 1000}s</span>
+                    <button className="btn" onClick={fetchTokens} disabled={loading}>
+                        {loading ? "Chargement…" : "Rafraîchir"}
+                    </button>
+                </div>
+            </header>
 
-            <table border={1} cellPadding={6} style={{ marginTop: "1rem", width: "100%" }}>
-                <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Market Cap ($)</th>
-                    <th>Liquidité ($)</th>
-                    <th>Prix ($)</th>
-                    <th>Âge</th>
-                    <th>Lien</th>
-                </tr>
-                </thead>
-                <tbody>
-                {tokens.map((t) => (
-                    <tr key={t.mint}>
-                        <td>{t.symbol}</td>
-                        <td>{Math.round(t.marketCap).toLocaleString()}</td>
-                        <td>{Math.round(t.liquidity).toLocaleString()}</td>
-                        <td>{t.priceUsd}</td>
-                        <td>{formatAge(t.createdAt)}</td>
-                        <td>
-                            <a href={`https://dexscreener.com/solana/${t.mint}`} target="_blank" rel="noreferrer">
-                                DexScreener
-                            </a>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            {error && <div className="alert alert-error">Erreur : {error}</div>}
+
+            <div className="table-wrap">
+                <div className="table-scroll">
+                    <table className="data-table">
+                        <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th className="num">Market Cap ($)</th>
+                            <th className="num">Liquidité ($)</th>
+                            <th className="num">Prix ($)</th>
+                            <th className="num">Âge</th>
+                            <th>Lien</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {tokens.map((t) => (
+                            <tr key={t.mint}>
+                                <td className="sym">{t.symbol}</td>
+                                <td className="num">{Math.round(t.marketCap).toLocaleString()}</td>
+                                <td className="num">{Math.round(t.liquidity).toLocaleString()}</td>
+                                <td className="num">{t.priceUsd}</td>
+                                <td className="num"><span className="badge">{formatAge(t.createdAt)}</span></td>
+                                <td>
+                                    <a className="link-btn" href={`https://dexscreener.com/solana/${t.mint}`} target="_blank" rel="noreferrer">
+                                        DexScreener ↗
+                                    </a>
+                                </td>
+                            </tr>
+                        ))}
+                        {!loading && tokens.length === 0 && (
+                            <tr><td className="table-empty" colSpan={6}>Aucun token pour le moment.</td></tr>
+                        )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 }
