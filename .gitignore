@@ -13,6 +13,7 @@ dist-ssr
 *.local
 .env
 .env.local
+alerter/.state
 
 # Editor directories and files
 .vscode/*
