@@ -3,7 +3,8 @@
 > Périmètre : nouveau système de **notification** (Discord et/ou Telegram) qui alerte dès
 > qu'une **nouvelle pool Meteora DLMM** est créée sur Solana.
 >
-> Statut : spécification produit (aucune implémentation). Version 1 — 2026-07-17.
+> Statut : **implémenté** (`alerter/`, PR #1) pour la première itération décrite en §11 (Node
+> local, canaux Discord + Telegram). Version 1 — 2026-07-17, mise à jour 2026-07-18.
 
 ---
 
@@ -281,22 +282,26 @@ Règles de contenu :
 
 ## 11. Hypothèses & questions ouvertes
 
-> Contrairement au projet `telegram-alerts/`, aucune décision n'a encore été validée par Enzo pour
-> celui-ci — les valeurs ci-dessous sont des **propositions** à confirmer avant le Lot 0 du plan de
-> mise en œuvre.
+> Mise à jour 2026-07-18 : Q1 et Q4 sont tranchées par l'implémentation réelle (voir spec
+> technique §3). Les autres questions restent ouvertes — les valeurs par défaut du MVP (§9) n'ont
+> pas été reconfirmées explicitement par Enzo au-delà du choix d'héberger et de tester les deux
+> canaux.
 
-- **Q1 (hébergement)** : réutiliser le même Cloudflare Worker + KV que le projet Supertrend
-  (mutualisation) ou déployer un Worker séparé, plus simple, dédié à cette seule alerte ? Voir
-  spec technique §3 pour l'analyse des deux options.
+- **Q1 (hébergement) — TRANCHÉ** : ni mutualisation Cloudflare ni Worker séparé au MVP. Décision
+  réelle : **script Node local** (`alerter/`, lancé via `npm run alerter`), état persisté dans un
+  fichier JSON local plutôt que KV. Choisi pour démarrer vite sans compte Cloudflare à provisionner.
+  Conséquence assumée : le service ne notifie que pendant qu'il tourne sur une machine — voir la
+  limite explicite en spec technique §3 et NFR disponibilité (§10). Migration serverless
+  documentée comme option de suite, pas comme correctif urgent.
 - **Q2 (anti-rafale, US-06)** : en cas de création massive de pools dans un même cycle (rare mais
   possible), throttling ou message agrégé ? Proposition par défaut : pas de traitement spécial au
   MVP (accepter jusqu'à N messages), à revisiter si le volume réel le justifie.
 - **Q3 (filtre TVL/blacklist, US-04)** : le seuil `MIN_TVL_ALERT = 0$` par défaut aligne le
   comportement sur `PoolsPage.tsx` (aucun filtre). À confirmer si Enzo veut un plancher dès le
   MVP pour réduire le bruit des pools à TVL quasi nulle créées en test.
-- **Q4 (canal par défaut)** : au tout premier déploiement, quel canal activer en premier —
-  Discord, Telegram, ou les deux d'emblée ? Impacte l'ordre des tâches P3/P4 du plan de mise en
-  œuvre.
+- **Q4 (canal par défaut) — TRANCHÉ** : les deux canaux ont été activés dès la première itération
+  (`ALERT_CHANNELS=discord,telegram`) — un webhook Discord et un bot Telegram (@BotFather) ont
+  tous les deux été créés et testés avec succès (message de test reçu sur chaque canal).
 - **Q5 (fréquence de scan, RG-01)** : `1 min` est une proposition tenant compte de la latence
   cible O2 (≤ 2 min) et de la légèreté de l'appel API (un seul endpoint, `page_size=50`). À
   confirmer selon le rate-limit réel observé de l'API Meteora (non documenté publiquement).
