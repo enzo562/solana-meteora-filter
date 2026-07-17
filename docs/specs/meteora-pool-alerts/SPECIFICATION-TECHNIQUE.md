@@ -1,8 +1,10 @@
 # Spécification technique — Alertes « Nouvelle pool Meteora »
 
-> Complément technique de `SPECIFICATION-FONCTIONNELLE.md`. Aucune implémentation ici : décisions
-> d'architecture, contrats de données, gestion des secrets et des erreurs.
-> Version 1 — 2026-07-17.
+> Complément technique de `SPECIFICATION-FONCTIONNELLE.md`. Décisions d'architecture, contrats de
+> données, gestion des secrets et des erreurs.
+> Version 1 — 2026-07-17, mise à jour 2026-07-18 après implémentation (`alerter/`, PR #1) : voir
+> §3 et §6, qui documentaient initialement des options non encore tranchées — l'hébergement réel
+> retenu diverge de la recommandation d'origine (Cloudflare Worker).
 
 ---
 
@@ -60,20 +62,22 @@ Le service est **additif** : aucun fichier `src/` existant n'est modifié.
 
 ## 3. Hébergement
 
-> Question ouverte Q1 (spec fonctionnelle §11) : mutualiser avec le projet `telegram-alerts/`
-> (Supertrend) ou déployer séparément ? Les deux options sont documentées ci-dessous ; la
-> recommandation est **option 1** si le projet Supertrend est déployé, sinon **option 2**.
+> **Décision réelle (2026-07-18, tranche Q1)** : ni mutualisation Cloudflare ni Worker séparé.
+> Première itération = **script Node local** (`alerter/`, lancé via `npm run alerter`), retenu
+> pour démarrer le développement sans provisionner de compte Cloudflare. Les deux options
+> serverless ci-dessous restent documentées comme **évolution possible**, pas comme travail
+> restant à faire dans l'immédiat.
 
 | Option | Description | Avantage | Inconvénient |
 |--------|-------------|----------|---------------|
-| **1. Mutualiser** avec le Worker Cloudflare du projet Supertrend (`telegram-alerts/`) | Un second Cron Trigger sur le même Worker, une nouvelle clé KV dédiée (`seenPools:*`) | Pas de nouvelle enveloppe à provisionner, un seul lieu de secrets | Couple le cycle de vie des deux fonctionnalités (un déploiement du Worker touche les deux) |
-| **2. Worker séparé** (recommandé si Supertrend n'est pas encore déployé, ou si on veut un découplage total) | Cloudflare Worker + Cron Trigger + KV dédiés à cette seule alerte | Isolation complète, plus simple à raisonner seul | Une enveloppe gratuite de plus à gérer (reste dans le free tier) |
+| **0. Script Node local** ✅ **retenu pour cette itération** | `alerter/index.ts`, boucle `setInterval` lancée manuellement (`npm run alerter`), état dans un fichier JSON local (`alerter/.state/seen-pools.json`) | Zéro compte/dépendance externe à provisionner, itération immédiate, aucune nouvelle dépendance npm (exécution TS native Node 24 + `--env-file`) | **Ne notifie que pendant que le process tourne** sur une machine allumée — pas de haute dispo, pas de garantie de continuité si l'ordi s'éteint/veille (cf. NFR §10) |
+| **1. Mutualiser** avec un futur Worker Cloudflare du projet Supertrend (`telegram-alerts/`) | Un second Cron Trigger sur le même Worker, une nouvelle clé KV dédiée (`seenPools:*`) | Pas de nouvelle enveloppe à provisionner si Supertrend est déployé un jour, un seul lieu de secrets | Couple le cycle de vie des deux fonctionnalités ; Supertrend n'est pas non plus implémenté à ce jour |
+| **2. Worker séparé** | Cloudflare Worker + Cron Trigger + KV dédiés à cette seule alerte | Isolation complète, dispo continue, granularité de cron fine | Compte Cloudflare + `wrangler` à mettre en place, migration de l'état JSON → KV |
 
-Dans les deux cas : **Cloudflare Worker + Cron Trigger + KV**, gratuit, cohérent avec la
-contrainte « pas de serveur payant persistant » déjà actée pour le projet Supertrend (voir
-`telegram-alerts/SPECIFICATION-TECHNIQUE.md` §3). Alternative de repli : cron GitHub Actions +
-état dans un Gist ou Upstash Redis, si Cloudflare s'avère inadapté — granularité minimale ~5 min,
-suffisante ici (RG-01 = 1 min est un objectif, pas un plancher dur : la latence cible O2 est 2 min).
+**Migration vers l'option 1 ou 2** recommandée si le besoin de disponibilité 24/7 devient réel
+(le script Node ne survit pas à l'extinction de la machine qui l'exécute) — sinon alternative de
+repli plus légère : cron GitHub Actions + état dans un Gist, granularité ~5 min (suffisante : RG-01
+= 1 min est un objectif, la latence cible O2 reste 2 min).
 
 ---
 
@@ -136,8 +140,9 @@ n'empêche pas l'envoi sur l'autre (US-05).
 
 ## 6. Modèle de données (état persistant)
 
-### Entité `SeenPools` (KV)
-Une seule clé KV (ex. `seenPools`) contenant un tableau JSON borné :
+### Entité `SeenPools` — implémentée en fichier JSON local (`alerter/stateStore.ts`)
+Un seul fichier (`alerter/.state/seen-pools.json`, gitignored) contenant un tableau JSON borné,
+dans l'ordre d'insertion (le plus ancien en premier) :
 
 ```jsonc
 {
@@ -146,13 +151,15 @@ Une seule clé KV (ex. `seenPools`) contenant un tableau JSON borné :
 }
 ```
 
-Alternative si le volume justifie une clé par pool (`seenPools:{address}` → `{ firstSeenAt }`) :
-plus simple à faire évoluer (TTL KV natif possible), mais plus d'opérations KV par cycle. Au
-volume attendu (quelques dizaines de nouvelles pools/jour), **une seule clé agrégée** suffit et
-minimise les lectures/écritures KV (le free tier Cloudflare KV a un quota d'opérations/jour).
+`readSeenAddresses`/`writeSeenAddresses` lisent/écrivent ce fichier ; l'éviction FIFO garde les
+`SEEN_POOLS_MAX` adresses les plus récentes (`list.slice(list.length - max)`).
+
+> Si l'hébergement migre vers Cloudflare (§3, options 1/2), cette entité devient une clé KV
+> (`seenPools` → même JSON) : le format de données ne change pas, seul le lecteur/écrivain change.
 
 > **Idempotence** : une `address` déjà présente dans `SeenPools.addresses` n'est jamais
-> re-notifiée, même après redémarrage (RG-07).
+> re-notifiée, même après redémarrage (RG-07) — vérifié : un second run consécutif sur les mêmes
+> pools ne déclenche aucune alerte.
 
 ---
 
@@ -200,8 +207,9 @@ Cf. §4. Toute réponse en échec passe par `readApiFailure`/`formatApiFailure` 
 - **Secrets serveur uniquement**, jamais `VITE_`-préfixés, jamais commités :
   - `DISCORD_WEBHOOK_URL` (si Discord actif)
   - `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` (si Telegram actif)
-- Stockage : secrets de la plateforme (Cloudflare Worker Secrets, ou GitHub Actions Secrets selon
-  l'option d'hébergement retenue). Ajouter un `.env.example` documentant les noms sans valeurs.
+- Stockage (implémenté) : fichier `.env` local, gitignored, non commité — voir `.env.example`
+  (créé) qui documente les noms sans valeurs. Si migration vers Cloudflare (§3, options 1/2) :
+  passer aux secrets de la plateforme (Cloudflare Worker Secrets ou GitHub Actions Secrets).
 - **Surface d'attaque** : le service n'expose aucun endpoint entrant (il appelle Discord/Telegram/
   Meteora, il n'écoute pas). Pas de webhook Telegram entrant, pas de commandes Discord — donc pas
   de surface HTTP à sécuriser au MVP.
@@ -212,13 +220,15 @@ Cf. §4. Toute réponse en échec passe par `readApiFailure`/`formatApiFailure` 
 
 ## 9. Impacts sur l'existant, mutualisation, risques
 
-- **Impact SPA** : nul (additif). `apiError.ts` et les types `MeteoraPool`/`PoolsResponse` sont
-  **partagés en lecture** (copiés ou importés selon la structure du repo serveur choisie) —
-  attention à ne pas dupliquer silencieusement si l'API Meteora fait évoluer son contrat : un seul
-  endroit devrait définir ces types si le service vit dans le même repo/mono-repo.
-- **Mutualisation avec `telegram-alerts/`** : les deux projets peuvent partager le même Worker
-  Cloudflare (Q1) ; dans ce cas, `stateStore` doit utiliser des clés KV **distinctes**
-  (`seenPools` vs `TokenTrendState`/`AlertRecord`) pour éviter toute collision.
+- **Impact SPA** : nul (additif, confirmé — aucun fichier `src/` modifié). `apiError.ts` est
+  **importé directement** depuis `alerter/poolFetcher.ts` (`../src/lib/apiError.ts`) ; les types
+  `MeteoraPool`/`PoolsResponse` sont dupliqués dans `alerter/types.ts` (même repo, mais processus
+  d'exécution séparé de la SPA) — si l'API Meteora fait évoluer son contrat, mettre à jour les
+  deux définitions.
+- **Mutualisation avec `telegram-alerts/`** : non applicable pour l'instant (Supertrend non
+  implémenté). Si les deux projets migrent un jour vers un Worker Cloudflare commun (§3), prévoir
+  des clés KV **distinctes** (`seenPools` vs `TokenTrendState`/`AlertRecord`) pour éviter toute
+  collision.
 - **Risque R1 (API Meteora sans SLA documenté)** : pas de garantie de rate-limit ou de disponibilité
   publiée. Mitigation : un seul appel/cycle, backoff sur erreur, ne jamais bloquer sur un échec
   (US-05).
@@ -226,8 +236,16 @@ Cf. §4. Toute réponse en échec passe par `readApiFailure`/`formatApiFailure` 
   secret, les alertes échouent silencieusement côté utilisateur si les logs ne sont pas surveillés.
   Mitigation : logger les échecs `401/403/404` comme critiques (§7.2/§7.3), envisager une alerte
   de repli (ex. e-mail) en cas d'échec total — hors MVP, à noter comme dette.
-- **Risque R3 (croissance de l'état KV)** : bornée par RG-09 (5 000 adresses, éviction FIFO) —
-  largement suffisant vu le volume de créations de pools DLMM observé.
+- **Risque R3 (croissance de l'état local)** : bornée par RG-09 (5 000 adresses, éviction FIFO,
+  vérifiée en test) — largement suffisant vu le volume de créations de pools DLMM observé.
+- **Risque R4 (disponibilité, nouveau — issu du choix Q1)** : le script Node ne notifie que
+  pendant qu'il tourne sur une machine allumée ; pas de garantie de continuité 24/7. Mitigation :
+  migration vers Cloudflare Worker (§3, options 1/2) si ce besoin devient réel ; en attendant,
+  laisser tourner le process (`npm run alerter`) sur une machine qui reste allumée.
+- **Risque observé en test (rafale de rate-limit Discord)** : envoyer ~50 alertes en rafale (cas
+  du tout premier run non-bootstrap simulé) a déclenché de vrais `429` Discord en quelques
+  secondes. US-06/T19 (anti-rafale, actuellement Could) devrait être priorisé si une vraie rafale
+  de créations de pools se produit en usage réel.
 
 ---
 

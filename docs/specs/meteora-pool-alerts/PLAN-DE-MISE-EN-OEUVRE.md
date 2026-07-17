@@ -3,6 +3,10 @@
 > Découpage par lots, backlog priorisé (MoSCoW + estimation relative S/M/L), jalons et risques.
 > Aucune date ferme (non demandé). Références : `SPECIFICATION-FONCTIONNELLE.md` (US/RG) et
 > `SPECIFICATION-TECHNIQUE.md` (§).
+>
+> **Mise à jour 2026-07-18** : Lots 0, 1, 2 et 4 sont **implémentés** (`alerter/`, PR #1) —
+> hébergement Node local (pas Cloudflare, cf. spec technique §3), Discord et Telegram tous les
+> deux actifs et testés. Détail par tâche dans le backlog (§2) et jalons (§4) ci-dessous.
 
 ---
 
@@ -10,41 +14,50 @@
 
 | # | Prérequis | Statut | Bloque |
 |---|-----------|--------|--------|
-| P1 | Décision d'hébergement : mutualiser avec le Worker `telegram-alerts/` ou Worker séparé (Q1) | ⏳ à trancher | Lot 1 |
-| P2 | Choix du/des canal(aux) à activer en premier : Discord, Telegram, les deux (Q4) | ⏳ à trancher | Lot 4 |
-| P3 | Si Discord : créer le webhook (Paramètres serveur → Intégrations → Webhooks), obtenir `DISCORD_WEBHOOK_URL` | ⏳ à faire | Lot 4 |
-| P4 | Si Telegram : créer le bot via @BotFather, obtenir `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | ⏳ à faire | Lot 4 |
-| P5 | Confirmer les valeurs par défaut (intervalle 1 min, TVL min 0$, taille état 5000) — §9 spec fonctionnelle | ⏳ à confirmer | Lot 2/3 |
-| P6 | Décider du traitement anti-rafale (Q2) — peut être reporté en Lot 5 | ⏳ à confirmer, non bloquant | Lot 5 |
+| P1 | Décision d'hébergement : mutualiser avec le Worker `telegram-alerts/` ou Worker séparé (Q1) | ✅ **Tranché** : script Node local (`alerter/`), ni l'un ni l'autre — voir spec technique §3 | Lot 1 |
+| P2 | Choix du/des canal(aux) à activer en premier : Discord, Telegram, les deux (Q4) | ✅ **Tranché** : les deux, dès la première itération | Lot 4 |
+| P3 | Si Discord : créer le webhook (Paramètres serveur → Intégrations → Webhooks), obtenir `DISCORD_WEBHOOK_URL` | ✅ fait, message de test reçu (`204`) | Lot 4 |
+| P4 | Si Telegram : créer le bot via @BotFather, obtenir `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | ✅ fait, message de test reçu (`200`, `ok: true`) | Lot 4 |
+| P5 | Confirmer les valeurs par défaut (intervalle 1 min, TVL min 0$, taille état 5000) — §9 spec fonctionnelle | ⏳ valeurs par défaut du code en place, non re-confirmées explicitement par Enzo | Lot 2/3 |
+| P6 | Décider du traitement anti-rafale (Q2) — peut être reporté en Lot 5 | ⏳ à confirmer, non bloquant — un vrai `429` Discord observé en test de charge, cf. spec technique §9 | Lot 5 |
 
 ---
 
 ## 1. Découpage en lots / phases
 
-### Lot 0 — Cadrage & décisions *(effort S)*
-Trancher P1, P2, P5. Squelette du service (dossier dédié ou dossier partagé avec
-`telegram-alerts/` selon P1), `.env.example`.
+### Lot 0 — Cadrage & décisions *(effort S)* — ✅ **fait**
+P1/P2/P4 tranchés (voir §0). Squelette du service : dossier `alerter/` dédié (pas de partage avec
+`telegram-alerts/`, non implémenté), `.env.example` créé.
 
-### Lot 1 — Socle & ordonnancement *(effort S)* — **MVP**
-Scheduler + `config` validée + `logger` + partage de `apiError.ts`. Un cycle « à vide » qui log
-qu'il tourne. Déploiement de l'enveloppe d'hébergement choisie.
+### Lot 1 — Socle & ordonnancement *(effort S)* — **MVP** — ✅ **fait**
+`main()`/boucle `setInterval` (`alerter/index.ts`) + `config` validée (`alerter/config.ts`) +
+`logger` (`alerter/logger.ts`) + import direct de `apiError.ts` depuis `src/lib/`. Le premier
+cycle loggue et tourne, vérifié en conditions réelles. Hébergement = process Node lancé
+manuellement (`npm run alerter`), pas d'enveloppe serverless (cf. P1).
 
-### Lot 2 — Fetch & détection de pools inédites *(effort M)* — **MVP, cœur**
-`poolFetcher` (réutilise les types de `PoolsPage.tsx`), `stateStore` (KV, éviction FIFO),
-`diffDetector` avec amorçage silencieux au premier run (US-02). Tests unitaires du diff.
+### Lot 2 — Fetch & détection de pools inédites *(effort M)* — **MVP, cœur** — ✅ **fait**
+`poolFetcher.ts` (réutilise les types de `PoolsPage.tsx`, copiés dans `alerter/types.ts`),
+`stateStore.ts` (fichier JSON local, éviction FIFO — pas KV, cf. P1), `diffDetector.ts` avec
+amorçage silencieux au premier run (US-02). Vérifié : bootstrap sur 50 pools réelles sans alerte,
+second run = 0 pool inédite (idempotence).
 
-### Lot 3 — Filtres optionnels *(effort S)* — **Should**
-Filtre TVL minimum (RG-03) et exclusion `is_blacklisted` (RG-04), tous deux configurables et
-désactivés/à zéro par défaut (US-04).
+### Lot 3 — Filtres optionnels *(effort S)* — **Should** — ✅ **fait**
+Filtre TVL minimum (RG-03) et exclusion `is_blacklisted` (RG-04) implémentés dans
+`passesFilters()` (`alerter/index.ts`), configurables et désactivés/à zéro par défaut (US-04).
+Non testés isolément (couverts par la relecture de code, pas de test unitaire dédié — cf. Lot 5/§10
+spec technique, aucun runner de test en place).
 
-### Lot 4 — Notifieurs Discord & Telegram *(effort M)* — **MVP**
+### Lot 4 — Notifieurs Discord & Telegram *(effort M)* — **MVP** — ✅ **fait**
 Interface `Notifier`, `discordNotifier` (webhook), `telegramNotifier` (Bot API), sélection via
 `ALERT_CHANNELS`, envoi parallèle (`Promise.allSettled`) pour isoler les pannes par canal (US-05).
-Format de message §8 (spec fonctionnelle) par canal. Première alerte réelle de bout en bout.
+Format de message §8 (spec fonctionnelle) par canal. **Première alerte réelle envoyée** sur les
+deux canaux (message de test manuel, pas encore une vraie création de pool — cf. J3 §4).
 
-### Lot 5 — Robustesse & observabilité *(effort S)* — **MVP-**
-Retry avec backoff sur échec d'envoi (RG-08), logs structurés par cycle (nb pools récupérées,
-inédites, alertes envoyées par canal, erreurs), gestion anti-rafale si P6 le confirme (US-06).
+### Lot 5 — Robustesse & observabilité *(effort S)* — **MVP-** — ⏳ partiel
+Logs structurés par cycle : ✅ fait (`logger.ts`, un événement JSON par étape du cycle). Retry
+avec backoff sur échec d'envoi (RG-08) : ⏳ **pas implémenté** — un échec d'envoi est loggé mais
+non retenté. Anti-rafale (US-06) : ⏳ pas implémenté, priorité à réévaluer suite au `429` Discord
+observé en test de charge (spec technique §9).
 
 ### Lot 6 — Itérations *(Should / Could, post-MVP)*
 Alerte de repli si un canal échoue durablement (dette notée en spec technique §9 R2), historique
@@ -93,11 +106,11 @@ Should/Could, non bloquantes pour le MVP).
 
 | Jalon | Contenu | « Terminé » quand… |
 |-------|---------|---------------------|
-| **J1 — Socle en ligne** | Lots 0-1 | Le service exécute un cycle vide planifié et log ; config invalide = refus de démarrage |
-| **J2 — Détection à sec** | Lot 2 | Sur données réelles/mockées, le pipeline logge les pools inédites détectées (sans encore notifier) ; premier run n'alerte rien ; tests `diffDetector` verts |
-| **J3 — Première alerte réelle** | Lot 4 | Une pool inédite déclenche une alerte reçue sur au moins un canal ; rejouer la même pool ne renvoie rien (idempotence) |
-| **J4 — MVP robuste** | Lot 5 | Une panne API/canal n'arrête pas le service ; logs par cycle exploitables ; US-01, 02, 03, 05 validées |
-| **J5 — Itérations** | Lot 6 | Selon priorisation (filtres, anti-rafale, alerte de repli…) |
+| **J1 — Socle en ligne** | Lots 0-1 | ✅ atteint : le service exécute un cycle planifié et log ; config invalide = refus de démarrage (vérifié) |
+| **J2 — Détection à sec** | Lot 2 | ✅ atteint sur données réelles (pas de mock) : bootstrap 50 pools sans alerte, second run = 0 pool inédite. Pas de test unitaire automatisé (pas de runner en place) |
+| **J3 — Première alerte réelle** | Lot 4 | ⏳ **partiel** : message de test manuel reçu sur Discord et Telegram (§ci-dessus), mais **pas encore validé sur une vraie création de pool** en conditions réelles (le service n'a pas encore tourné assez longtemps pour en capter une) |
+| **J4 — MVP robuste** | Lot 5 | ⏳ partiel : pannes API gérées (cycle suivant retente), logs par cycle exploitables ; retry/backoff sur échec d'envoi (RG-08) **pas encore implémenté** |
+| **J5 — Itérations** | Lot 6 | Selon priorisation (filtres déjà faits en Lot 3, anti-rafale à réévaluer, alerte de repli…) |
 
 ---
 
