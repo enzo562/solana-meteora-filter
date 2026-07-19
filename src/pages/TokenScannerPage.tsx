@@ -17,17 +17,45 @@ interface RugcheckRisk {
     level?: string;
 }
 
+interface RugcheckMarket {
+    lp?: { lpLockedPct?: number; quoteUSD?: number; baseUSD?: number };
+}
+
 interface RugcheckReport {
     score?: number;
     score_normalised?: number;
     risks?: RugcheckRisk[];
     rugged?: boolean;
+    // Absent de `/report` en pratique (confirmé par test réel, 2026-07-19) : n'existe que sur
+    // `/report/summary`. Gardé ici en repli tolérant si RugCheck l'ajoute un jour à `/report` ;
+    // la valeur réellement utilisée vient de `deriveLpLockedPct()` (agrégée depuis `markets[]`,
+    // déjà présent dans la même réponse `/report`, donc sans appel supplémentaire).
     lpLockedPct?: number;
     totalLPProviders?: number;
     graphInsidersDetected?: number;
     insiderNetworks?: unknown[];
     token?: { mintAuthority?: string | null; freezeAuthority?: string | null };
     verification?: { jup_verified?: boolean };
+    markets?: RugcheckMarket[];
+}
+
+// `/report` ne porte pas de `lpLockedPct` racine (seul `/report/summary` l'a) — dérivé ici
+// depuis `markets[].lp.lpLockedPct`, pondéré par la liquidité USD de chaque pool, pour ne pas
+// perdre ce signal ni faire un appel réseau de plus.
+function deriveLpLockedPct(data: RugcheckReport): number | undefined {
+    if (data.lpLockedPct !== undefined) return data.lpLockedPct;
+    const markets = data.markets ?? [];
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const m of markets) {
+        const lp = m.lp;
+        if (!lp || lp.lpLockedPct === undefined) continue;
+        const weight = (lp.quoteUSD ?? 0) + (lp.baseUSD ?? 0);
+        if (weight <= 0) continue;
+        weightedSum += lp.lpLockedPct * weight;
+        totalWeight += weight;
+    }
+    return totalWeight > 0 ? weightedSum / totalWeight : undefined;
 }
 
 interface DexOrder {
@@ -84,6 +112,139 @@ function isValidSolanaAddress(ca: string): boolean {
 
 function shortAddr(addr: string): string {
     return addr.length <= 14 ? addr : `${addr.slice(0, 6)}…${addr.slice(-6)}`;
+}
+
+// Seuils indicatifs pour le code couleur (RG-07) : RugCheck ne documente pas d'échelle
+// officielle au-delà de "plus haut = plus risqué", donc ces bornes sont un choix éditorial,
+// pas une donnée de la source — appliquées uniquement à score_normalised (échelle ~0-100),
+// jamais au score brut dont l'amplitude varie trop d'un token à l'autre.
+function scoreLevel(scoreNormalised: number | undefined): "good" | "warn" | "bad" | null {
+    if (scoreNormalised === undefined) return null;
+    if (scoreNormalised <= 30) return "good";
+    if (scoreNormalised <= 60) return "warn";
+    return "bad";
+}
+
+function levelBadgeClass(level: "good" | "warn" | "bad" | null): string {
+    if (level === "good") return "badge badge-good";
+    if (level === "warn") return "badge badge-warn";
+    if (level === "bad") return "badge badge-bad";
+    return "badge";
+}
+
+// "warn"/"danger" observés en pratique dans risks[] (cf. spec technique §4.1, Q4) ; repli
+// neutre pour toute autre valeur non documentée par RugCheck.
+function riskLevelBadgeClass(level?: string): string {
+    if (level === "danger") return "badge badge-bad";
+    if (level === "warn") return "badge badge-warn";
+    return "badge";
+}
+
+// Score agrégé maison (Lot 6, Q8) — EXPÉRIMENTAL. RugCheck ne fournit qu'un score global ;
+// ceci recombine 4 signaux internes à un même rapport RugCheck (donc jamais "source down",
+// seulement "champ absent du rapport") en un seul chiffre pondéré. Dex Paid, Snipers et
+// Phishing sont volontairement exclus : le premier est un signal positif faible et non un
+// facteur de risque, les deux autres n'ont aucune source fiable (RG-04) — les inclure dans un
+// score chiffré leur donnerait une crédibilité qu'ils n'ont pas. Poids arbitraires, non
+// backtestés sur des rugs confirmés : à afficher avec la décomposition, jamais seuls.
+interface ScoreComponent {
+    label: string;
+    subscore: number; // 0-100, 0 = sûr, 100 = dangereux
+    weight: number;
+}
+
+// Plancher appliqué si RugCheck flague un facteur en "danger" dans risks[] (ex. "Low
+// Liquidity") : sans lui, un token isolément flaggé dangereux mais favorable sur les 4 autres
+// composants (authorities révoquées, LP lockée, peu d'insiders) peut ressortir "vert" — vérifié
+// en test réel (2026-07-19) sur un token à $0.35 de liquidité noté 29/100. Seuil éditorial, pas
+// une valeur documentée par RugCheck.
+const DANGER_RISK_FLOOR = 70;
+
+interface AggregateScore {
+    score: number;
+    components: ScoreComponent[];
+    missing: string[];
+    ruggedOverride: boolean;
+    dangerFloorApplied: boolean;
+}
+
+function computeAggregateScore(data: RugcheckReport): AggregateScore | null {
+    const components: ScoreComponent[] = [];
+    const missing: string[] = [];
+
+    if (data.score_normalised !== undefined) {
+        components.push({ label: "Risque global RugCheck", subscore: data.score_normalised, weight: 0.4 });
+    } else {
+        missing.push("Risque global RugCheck (score_normalised absent)");
+    }
+
+    if (data.token?.mintAuthority !== undefined && data.token?.freezeAuthority !== undefined) {
+        const subscore = (data.token.mintAuthority ? 50 : 0) + (data.token.freezeAuthority ? 50 : 0);
+        components.push({ label: "Authorities (mint/freeze)", subscore, weight: 0.25 });
+    } else {
+        missing.push("Authorities (mint/freeze non renseignées par le rapport)");
+    }
+
+    const lpLockedPct = deriveLpLockedPct(data);
+    if (lpLockedPct !== undefined) {
+        components.push({
+            label: "LP verrouillée/brûlée",
+            subscore: Math.max(0, Math.min(100, 100 - lpLockedPct)),
+            weight: 0.2,
+        });
+    } else {
+        missing.push("LP lock (aucune donnée de lock exploitable dans markets[])");
+    }
+
+    if (data.graphInsidersDetected !== undefined) {
+        components.push({
+            label: "Insiders",
+            subscore: Math.min(100, data.graphInsidersDetected * 20),
+            weight: 0.15,
+        });
+    } else {
+        missing.push("Insiders (graphInsidersDetected absent)");
+    }
+
+    if (components.length === 0) return null;
+
+    // Renormalisation : si un signal manque, son poids n'est pas perdu mais redistribué sur
+    // les signaux disponibles, plutôt que de fausser silencieusement le score vers "sûr".
+    const weightSum = components.reduce((s, c) => s + c.weight, 0);
+    const weighted = components.reduce((s, c) => s + (c.subscore * c.weight) / weightSum, 0);
+
+    const ruggedOverride = data.rugged === true;
+    const hasDangerRisk = (data.risks ?? []).some((r) => r.level === "danger");
+    const dangerFloorApplied = !ruggedOverride && hasDangerRisk && weighted < DANGER_RISK_FLOOR;
+    const score = ruggedOverride
+        ? 100
+        : dangerFloorApplied
+          ? DANGER_RISK_FLOOR
+          : Math.round(weighted);
+
+    return { score, components, missing, ruggedOverride, dangerFloorApplied };
+}
+
+function CopyButton({ text }: { text: string }) {
+    const [copied, setCopied] = useState(false);
+    return (
+        <button
+            type="button"
+            className="copy-btn"
+            onClick={async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                } catch {
+                    // Presse-papiers indisponible (contexte non sécurisé, permission refusée…) —
+                    // pas de repli utile côté page, l'adresse reste visible et copiable à la main.
+                }
+            }}
+        >
+            {copied ? "Copié ✓" : "Copier"}
+        </button>
+    );
 }
 
 // Best-effort seulement : RugCheck n'a pas de catégorie "sniper"/"phishing" dédiée,
@@ -240,6 +401,7 @@ export default function TokenScannerPage() {
                 <>
                     <p className="hint-inline">
                         Analyse de <code>{shortAddr(analyzedCa)}</code>
+                        <CopyButton text={analyzedCa} />
                     </p>
 
                     <div className="scan-grid">
@@ -248,13 +410,18 @@ export default function TokenScannerPage() {
                             state={rugcheck}
                             render={(data) => {
                                 const score = data.score_normalised ?? data.score;
+                                const level = data.rugged ? "bad" : scoreLevel(data.score_normalised);
                                 return (
                                     <>
+                                        <p className="sens-metier">
+                                            Note synthétique de dangerosité — plus haut = plus risqué. Premier filtre
+                                            « go / méfiance / fuis », pas un audit complet.
+                                        </p>
                                         <p>
-                                            Score RugCheck : <span className="badge">{score ?? "?"}</span>
+                                            Score RugCheck :{" "}
+                                            <span className={levelBadgeClass(level)}>{score ?? "?"}</span>
                                             {data.rugged && <span className="badge badge-bad">RUGGED</span>}
                                         </p>
-                                        <p className="hint-inline">Plus haut = plus risqué.</p>
                                         {data.verification?.jup_verified && (
                                             <p className="hint-inline">Vérifié par Jupiter (signal positif faible).</p>
                                         )}
@@ -263,13 +430,75 @@ export default function TokenScannerPage() {
                                                 {data.risks.map((r, i) => (
                                                     <li key={i}>
                                                         <strong>{r.name ?? "Facteur de risque"}</strong>
-                                                        {r.level ? ` (${r.level})` : ""}
-                                                        {r.description ? ` — ${r.description}` : ""}
+                                                        {r.level && (
+                                                            <span className={riskLevelBadgeClass(r.level)}>{r.level}</span>
+                                                        )}
+                                                        {r.value && <span className="risk-value"> {r.value}</span>}
+                                                        {r.description ? <> — {r.description}</> : null}
                                                     </li>
                                                 ))}
                                             </ul>
                                         ) : (
-                                            <p className="hint-inline">Aucun facteur de risque signalé par RugCheck.</p>
+                                            <p className="hint-inline">
+                                                Aucun facteur de risque signalé par RugCheck — plutôt bon signe, sans
+                                                que ce soit une garantie d'absence de risque.
+                                            </p>
+                                        )}
+                                    </>
+                                );
+                            }}
+                        />
+
+                        <ScanBlock
+                            title="Score agrégé (maison) ⚠️"
+                            state={rugcheck}
+                            render={(data) => {
+                                const agg = computeAggregateScore(data);
+                                if (!agg) {
+                                    return (
+                                        <p className="hint-inline">
+                                            Non calculable — aucun des signaux nécessaires n'est présent dans le
+                                            rapport RugCheck.
+                                        </p>
+                                    );
+                                }
+                                return (
+                                    <>
+                                        <p className="sens-metier">
+                                            Expérimental — pondération éditoriale non backtestée sur des rugs
+                                            confirmés (Q8). Combine 4 signaux du rapport RugCheck ; Dex Paid,
+                                            Snipers et Phishing sont volontairement exclus (cf. blocs dédiés). Un
+                                            plancher à {DANGER_RISK_FLOOR} s'applique si RugCheck flague un facteur
+                                            en "danger" (ex. Low Liquidity), pour ne jamais afficher "vert" un
+                                            token que la source elle-même juge dangereux sur un point précis. À
+                                            lire en complément du score RugCheck ci-dessus, pas à sa place.
+                                        </p>
+                                        <p>
+                                            Score maison :{" "}
+                                            <span className={levelBadgeClass(scoreLevel(agg.score))}>{agg.score}</span>
+                                            {agg.ruggedOverride && (
+                                                <span className="badge badge-bad">forcé à 100 (rugged)</span>
+                                            )}
+                                            {agg.dangerFloorApplied && (
+                                                <span className="badge badge-warn">
+                                                    plancher {DANGER_RISK_FLOOR} (facteur "danger" RugCheck)
+                                                </span>
+                                            )}
+                                        </p>
+                                        <ul className="risk-list">
+                                            {agg.components.map((c) => (
+                                                <li key={c.label}>
+                                                    {c.label} :{" "}
+                                                    <span className="risk-value">
+                                                        {Math.round(c.subscore)}/100 (poids {(c.weight * 100).toFixed(0)}%)
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {agg.missing.length > 0 && (
+                                            <p className="hint-inline">
+                                                Signaux absents, poids redistribué sur le reste : {agg.missing.join(", ")}.
+                                            </p>
                                         )}
                                     </>
                                 );
@@ -279,19 +508,27 @@ export default function TokenScannerPage() {
                         <ScanBlock
                             title="Insiders"
                             state={rugcheck}
-                            render={(data) => (
-                                <>
-                                    <p>
-                                        Insiders détectés (graphe) :{" "}
-                                        <span className="badge">{data.graphInsidersDetected ?? "?"}</span>
-                                    </p>
-                                    <p className="hint-inline">
-                                        {data.insiderNetworks && data.insiderNetworks.length > 0
-                                            ? `${data.insiderNetworks.length} réseau(x) d'insiders détecté(s).`
-                                            : "Aucun réseau d'insiders détecté par RugCheck."}
-                                    </p>
-                                </>
-                            )}
+                            render={(data) => {
+                                const count = data.graphInsidersDetected ?? 0;
+                                const level = data.graphInsidersDetected === undefined ? null : count > 0 ? "warn" : "good";
+                                return (
+                                    <>
+                                        <p className="sens-metier">
+                                            Wallets liés au créateur ayant reçu des tokens hors achat normal
+                                            (transferts, pré-mine). Concentration forte = risque de rug/dump.
+                                        </p>
+                                        <p>
+                                            Insiders détectés (graphe) :{" "}
+                                            <span className={levelBadgeClass(level)}>{data.graphInsidersDetected ?? "?"}</span>
+                                        </p>
+                                        <p className="hint-inline">
+                                            {data.insiderNetworks && data.insiderNetworks.length > 0
+                                                ? `${data.insiderNetworks.length} réseau(x) d'insiders détecté(s).`
+                                                : "Aucun réseau d'insiders détecté par RugCheck."}
+                                        </p>
+                                    </>
+                                );
+                            }}
                         />
 
                         <ScanBlock
@@ -300,28 +537,37 @@ export default function TokenScannerPage() {
                             render={(data) => {
                                 const mintRevoked = !data.token?.mintAuthority;
                                 const freezeRevoked = !data.token?.freezeAuthority;
+                                const lpPct = deriveLpLockedPct(data);
+                                const lpLevel = lpPct === undefined ? null : lpPct >= 80 ? "good" : lpPct >= 30 ? "warn" : "bad";
                                 return (
-                                    <ul className="risk-list">
-                                        <li>
-                                            Mint authority :{" "}
-                                            <span className={`badge ${mintRevoked ? "badge-good" : "badge-bad"}`}>
-                                                {mintRevoked ? "révoquée" : "active"}
-                                            </span>
-                                        </li>
-                                        <li>
-                                            Freeze authority :{" "}
-                                            <span className={`badge ${freezeRevoked ? "badge-good" : "badge-bad"}`}>
-                                                {freezeRevoked ? "révoquée" : "active"}
-                                            </span>
-                                        </li>
-                                        <li>
-                                            LP verrouillée/brûlée :{" "}
-                                            <span className="badge">
-                                                {data.lpLockedPct !== undefined ? `${data.lpLockedPct}%` : "?"}
-                                            </span>{" "}
-                                            ({data.totalLPProviders ?? "?"} fournisseur(s) LP)
-                                        </li>
-                                    </ul>
+                                    <>
+                                        <p className="sens-metier">
+                                            Mint active = le créateur peut créer des tokens à l'infini (dilution).
+                                            Freeze active = il peut geler tes tokens. LP non verrouillée/brûlée = il
+                                            peut retirer la liquidité (rug). Révoqué/brûlé = rassurant.
+                                        </p>
+                                        <ul className="risk-list">
+                                            <li>
+                                                Mint authority :{" "}
+                                                <span className={`badge ${mintRevoked ? "badge-good" : "badge-bad"}`}>
+                                                    {mintRevoked ? "révoquée" : "active"}
+                                                </span>
+                                            </li>
+                                            <li>
+                                                Freeze authority :{" "}
+                                                <span className={`badge ${freezeRevoked ? "badge-good" : "badge-bad"}`}>
+                                                    {freezeRevoked ? "révoquée" : "active"}
+                                                </span>
+                                            </li>
+                                            <li>
+                                                LP verrouillée/brûlée :{" "}
+                                                <span className={levelBadgeClass(lpLevel)}>
+                                                    {lpPct !== undefined ? `${lpPct.toFixed(1)}%` : "non disponible"}
+                                                </span>{" "}
+                                                ({data.totalLPProviders ?? "?"} fournisseur(s) LP)
+                                            </li>
+                                        </ul>
+                                    </>
                                 );
                             }}
                         />
@@ -336,15 +582,37 @@ export default function TokenScannerPage() {
                                 return (
                                     <>
                                         <div className="alert alert-warn">
-                                            Non couvert par une source gratuite dédiée — ce qui suit est un
-                                            sous-produit best-effort des facteurs RugCheck, pas une mesure fiable.
+                                            Non couvert par une source gratuite dédiée — voir GMGN / outils externes.
+                                            Ce qui suit est un sous-produit best-effort des facteurs RugCheck, pas une
+                                            mesure fiable ; l'absence de résultat ne veut pas dire « zéro », juste
+                                            « rien détecté par ce repli ».
                                         </div>
-                                        {(sniperHits.length > 0 || phishingHits.length > 0) && (
+                                        <p className="sens-metier">
+                                            Snipers : wallets ayant acheté dans les tout premiers blocs — beaucoup de
+                                            snipers = distribution artificielle, risque de vente massive précoce.
+                                        </p>
+                                        {sniperHits.length > 0 && (
                                             <ul className="risk-list">
-                                                {[...sniperHits, ...phishingHits].map((r, i) => (
+                                                {sniperHits.map((r, i) => (
                                                     <li key={i}>
                                                         <strong>{r.name ?? "Facteur"}</strong>
-                                                        {r.description ? ` — ${r.description}` : ""}
+                                                        {r.value && <span className="risk-value"> {r.value}</span>}
+                                                        {r.description ? <> — {r.description}</> : null}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        <p className="sens-metier">
+                                            Phishing : wallets/labels connus comme frauduleux (arnaques, drainers) —
+                                            leur présence parmi les holders est un signal d'alerte fort.
+                                        </p>
+                                        {phishingHits.length > 0 && (
+                                            <ul className="risk-list">
+                                                {phishingHits.map((r, i) => (
+                                                    <li key={i}>
+                                                        <strong>{r.name ?? "Facteur"}</strong>
+                                                        {r.value && <span className="risk-value"> {r.value}</span>}
+                                                        {r.description ? <> — {r.description}</> : null}
                                                     </li>
                                                 ))}
                                             </ul>
@@ -366,17 +634,29 @@ export default function TokenScannerPage() {
                             title="Dex Paid"
                             state={dexPaid}
                             render={(data) => (
-                                <p>
-                                    <span className="badge">{data.paid ? "Payé" : "Non payé"}</span>
-                                    {data.paid && data.approvedTypes.length > 0 && (
-                                        <span className="hint-inline"> ({data.approvedTypes.join(", ")})</span>
-                                    )}
-                                </p>
+                                <>
+                                    <p className="sens-metier">
+                                        Le token a-t-il payé un profil ou une pub DexScreener ? Signal contextuel
+                                        faible d'investissement de l'équipe — pas une garantie de sécurité.
+                                    </p>
+                                    <p>
+                                        <span className={`badge ${data.paid ? "badge-good" : ""}`}>
+                                            {data.paid ? "Payé" : "Non payé"}
+                                        </span>
+                                        {data.paid && data.approvedTypes.length > 0 && (
+                                            <span className="hint-inline"> ({data.approvedTypes.join(", ")})</span>
+                                        )}
+                                    </p>
+                                </>
                             )}
                         />
 
                         <div className="scan-block">
                             <h3>Bubblemap</h3>
+                            <p className="sens-metier">
+                                Clusters de holders — qui détient quoi et quels wallets sont connectés entre eux. Un
+                                gros cluster concentré/connecté = risque de dump coordonné.
+                            </p>
                             <p className="hint-inline">
                                 Visualisation embarquée (iframe gratuite Bubblemaps, pas de données structurées).
                             </p>

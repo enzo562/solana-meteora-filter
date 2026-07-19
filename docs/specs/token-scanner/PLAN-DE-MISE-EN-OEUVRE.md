@@ -7,8 +7,11 @@
 > Principe de découpage : **livrer de la valeur dès le Lot 1** (RugCheck seul = déjà un verdict de
 > risque exploitable), puis ajouter les sources par ordre de robustesse (DexScreener très sûr →
 > liens externes triviaux → iframe Bubblemaps à valider). Statut global : **implémenté en un seul
-> passage (2026-07-19)** — les Lots 0 à 4 ont été livrés ensemble plutôt qu'étalés ; seuls les
-> lots Should/Could restants (5-6 : sens métier détaillé, score agrégé, historique) sont à faire.
+> passage (2026-07-19)** — les Lots 0 à 4 ont été livrés ensemble plutôt qu'étalés. **Lot 5 livré
+> (2026-07-19)** : sens métier par indicateur, code couleur du score global (RG-07), badges
+> `warn`/`danger` sur `risks[]`, affichage du champ `value`, adresse copiable, % formatés. Seul le
+> Lot 6 — **score agrégé maison livré (2026-07-19)**, T23 seul du Lot 6 traité ; visualisation
+> native du bubblemap et historique/favoris (T24-T25) restent à faire.
 
 ---
 
@@ -97,7 +100,7 @@ Cooperation-API) si le besoin le justifie ; analyse multi-CA.
 | T20 | Textes de sens métier par indicateur | 5 | US-03 | Should | S | T06,T07,T08,T14 |
 | T21 | Traitement « non couvert » Snipers/Phishing (décision P6) | 5 | Q2, Q3, RG-04 | Should | S | T09 |
 | T22 | Formatage lisible (adresses, %, couleurs cohérentes) | 5 | US-03 | Should | S | T06,T07,T08 |
-| T23 | Score agrégé maison | 6 | Q8 | Could | M | T06 |
+| T23 | ~~Score agrégé maison~~ | 6 | Q8 | Could | M | ✅ fait (2026-07-19) — pondération 40/25/20/15 (RugCheck/authorities/LP/insiders), Dex Paid+Snipers+Phishing exclus, poids redistribué si signal absent |
 | T24 | Visualisation native du bubblemap (API payante + lib graphe) | 6 | — | Won't (MVP) | L | — |
 | T25 | Historique / favoris de CA | 6 | — | Could | M | T11 |
 
