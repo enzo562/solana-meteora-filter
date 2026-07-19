@@ -10,8 +10,9 @@
 > passage (2026-07-19)** — les Lots 0 à 4 ont été livrés ensemble plutôt qu'étalés. **Lot 5 livré
 > (2026-07-19)** : sens métier par indicateur, code couleur du score global (RG-07), badges
 > `warn`/`danger` sur `risks[]`, affichage du champ `value`, adresse copiable, % formatés. Seul le
-> Lot 6 — **score agrégé maison livré (2026-07-19)**, T23 seul du Lot 6 traité ; visualisation
-> native du bubblemap et historique/favoris (T24-T25) restent à faire.
+> Lot 6 — **score agrégé maison (T23) et historique/favoris (T25) livrés (2026-07-19/20)**. T24
+> (visualisation native du bubblemap) reste explicitement **Won't** : nécessiterait l'API B2B
+> payante de Bubblemaps, incompatible avec la contrainte « gratuit, sans clé » du projet.
 
 ---
 
@@ -102,7 +103,7 @@ Cooperation-API) si le besoin le justifie ; analyse multi-CA.
 | T22 | Formatage lisible (adresses, %, couleurs cohérentes) | 5 | US-03 | Should | S | T06,T07,T08 |
 | T23 | ~~Score agrégé maison~~ | 6 | Q8 | Could | M | ✅ fait (2026-07-19) — pondération 40/25/20/15 (RugCheck/authorities/LP/insiders), Dex Paid+Snipers+Phishing exclus, poids redistribué si signal absent |
 | T24 | Visualisation native du bubblemap (API payante + lib graphe) | 6 | — | Won't (MVP) | L | — |
-| T25 | Historique / favoris de CA | 6 | — | Could | M | T11 |
+| T25 | ~~Historique / favoris de CA~~ | 6 | — | Could | M | ✅ fait (2026-07-20) — persistance `localStorage`, favoris jamais évincés, plafond 20 non-favoris |
 
 ---
 

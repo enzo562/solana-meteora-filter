@@ -225,6 +225,65 @@ function computeAggregateScore(data: RugcheckReport): AggregateScore | null {
     return { score, components, missing, ruggedOverride, dangerFloorApplied };
 }
 
+// Historique / favoris (T25) — persistance locale uniquement (le projet n'a pas de backend).
+// Un favori n'est jamais évincé par le plafond ; seuls les entrées non-favorites les plus
+// anciennes le sont, pour garder l'historique utile sans grossir indéfiniment.
+const HISTORY_STORAGE_KEY = "token-scanner-history";
+const MAX_NON_FAVORITE_HISTORY = 20;
+
+interface HistoryEntry {
+    ca: string;
+    lastAnalyzedAt: number;
+    favorite: boolean;
+}
+
+function loadHistory(): HistoryEntry[] {
+    try {
+        const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw) as unknown;
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(
+            (e): e is HistoryEntry =>
+                typeof e === "object" &&
+                e !== null &&
+                typeof (e as HistoryEntry).ca === "string" &&
+                typeof (e as HistoryEntry).lastAnalyzedAt === "number" &&
+                typeof (e as HistoryEntry).favorite === "boolean",
+        );
+    } catch {
+        // localStorage indisponible (navigation privée…) ou JSON corrompu — repli silencieux
+        // sur un historique vide, pas une erreur bloquante pour la page.
+        return [];
+    }
+}
+
+function saveHistory(entries: HistoryEntry[]) {
+    try {
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(entries));
+    } catch {
+        // Quota dépassé ou stockage indisponible : l'historique reste fonctionnel en mémoire
+        // pour la session en cours, seule la persistance est perdue.
+    }
+}
+
+function sortHistory(entries: HistoryEntry[]): HistoryEntry[] {
+    return [...entries].sort((a, b) => {
+        if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+        return b.lastAnalyzedAt - a.lastAnalyzedAt;
+    });
+}
+
+function relativeTime(ts: number): string {
+    const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diffSec < 60) return "à l'instant";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `il y a ${diffMin} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `il y a ${diffH} h`;
+    return `il y a ${Math.floor(diffH / 24)} j`;
+}
+
 function CopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false);
     return (
@@ -285,9 +344,45 @@ export default function TokenScannerPage() {
     const [analyzedCa, setAnalyzedCa] = useState<string | null>(null);
     const [rugcheck, setRugcheck] = useState<BlockState<RugcheckReport>>({ status: "idle" });
     const [dexPaid, setDexPaid] = useState<BlockState<DexPaidResult>>({ status: "idle" });
+    const [history, setHistory] = useState<HistoryEntry[]>(() => loadHistory());
     const abortRef = useRef<AbortController | null>(null);
 
     useEffect(() => () => abortRef.current?.abort(), []);
+
+    const upsertHistory = useCallback((ca: string) => {
+        setHistory((prev) => {
+            const existing = prev.find((e) => e.ca === ca);
+            const withoutCa = prev.filter((e) => e.ca !== ca);
+            const entry: HistoryEntry = { ca, lastAnalyzedAt: Date.now(), favorite: existing?.favorite ?? false };
+            let next = [...withoutCa, entry];
+
+            const nonFavorites = next.filter((e) => !e.favorite).sort((a, b) => a.lastAnalyzedAt - b.lastAnalyzedAt);
+            const overflow = nonFavorites.length - MAX_NON_FAVORITE_HISTORY;
+            if (overflow > 0) {
+                const evict = new Set(nonFavorites.slice(0, overflow).map((e) => e.ca));
+                next = next.filter((e) => !evict.has(e.ca));
+            }
+
+            saveHistory(next);
+            return next;
+        });
+    }, []);
+
+    const toggleFavorite = useCallback((ca: string) => {
+        setHistory((prev) => {
+            const next = prev.map((e) => (e.ca === ca ? { ...e, favorite: !e.favorite } : e));
+            saveHistory(next);
+            return next;
+        });
+    }, []);
+
+    const removeHistoryEntry = useCallback((ca: string) => {
+        setHistory((prev) => {
+            const next = prev.filter((e) => e.ca !== ca);
+            saveHistory(next);
+            return next;
+        });
+    }, []);
 
     const runAnalysis = useCallback((ca: string) => {
         abortRef.current?.abort();
@@ -295,6 +390,7 @@ export default function TokenScannerPage() {
         abortRef.current = controller;
 
         setAnalyzedCa(ca);
+        upsertHistory(ca);
         setRugcheck({ status: "loading" });
         setDexPaid({ status: "loading" });
 
@@ -351,7 +447,7 @@ export default function TokenScannerPage() {
                 setDexPaid({ status: "error", message: e instanceof Error ? e.message : "Erreur inconnue" });
             }
         })();
-    }, []);
+    }, [upsertHistory]);
 
     const handleSubmit = useCallback(
         (e: FormEvent) => {
@@ -397,11 +493,60 @@ export default function TokenScannerPage() {
             </form>
             {formError && <div className="alert alert-error">{formError}</div>}
 
+            {history.length > 0 && (
+                <div className="history-row">
+                    {sortHistory(history).map((entry) => (
+                        <span key={entry.ca} className="history-chip">
+                            <button
+                                type="button"
+                                className="fav-btn"
+                                title={entry.favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                                onClick={() => toggleFavorite(entry.ca)}
+                            >
+                                {entry.favorite ? "★" : "☆"}
+                            </button>
+                            <button
+                                type="button"
+                                className="history-btn"
+                                title={entry.ca}
+                                onClick={() => {
+                                    setCaInput(entry.ca);
+                                    setFormError(null);
+                                    runAnalysis(entry.ca);
+                                }}
+                            >
+                                {shortAddr(entry.ca)} <span className="hint-inline">— {relativeTime(entry.lastAnalyzedAt)}</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="remove-btn"
+                                title="Retirer de l'historique"
+                                onClick={() => removeHistoryEntry(entry.ca)}
+                            >
+                                ×
+                            </button>
+                        </span>
+                    ))}
+                </div>
+            )}
+
             {analyzedCa && (
                 <>
                     <p className="hint-inline">
                         Analyse de <code>{shortAddr(analyzedCa)}</code>
                         <CopyButton text={analyzedCa} />
+                        <button
+                            type="button"
+                            className="fav-btn"
+                            title={
+                                history.find((e) => e.ca === analyzedCa)?.favorite
+                                    ? "Retirer des favoris"
+                                    : "Ajouter aux favoris"
+                            }
+                            onClick={() => toggleFavorite(analyzedCa)}
+                        >
+                            {history.find((e) => e.ca === analyzedCa)?.favorite ? "★" : "☆"}
+                        </button>
                     </p>
 
                     <div className="scan-grid">
