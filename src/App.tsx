@@ -4,6 +4,7 @@ import PoolsPage from "./pages/PoolsPage";
 import GeckoTerminalPage from "./pages/GeckoTerminalPage";
 import DexScreenerPage from "./pages/DexScreenerPage";
 import SolanaTrackerPage from "./pages/SolanaTrackerPage";
+import TokenScannerPage from "./pages/TokenScannerPage";
 
 const NAV_ITEMS = [
   { to: "/filter", label: "Birdeye" },
@@ -11,6 +12,7 @@ const NAV_ITEMS = [
   { to: "/dexscreener", label: "DexScreener" },
   { to: "/solanatracker", label: "Solana Tracker" },
   { to: "/pools", label: "Pools Meteora" },
+  { to: "/scanner", label: "Scanner" },
 ];
 
 function Nav() {
@@ -45,6 +47,7 @@ export default function App() {
           <Route path="/dexscreener" element={<DexScreenerPage />} />
           <Route path="/solanatracker" element={<SolanaTrackerPage />} />
           <Route path="/pools" element={<PoolsPage />} />
+          <Route path="/scanner" element={<TokenScannerPage />} />
         </Routes>
       </BrowserRouter>
   );
