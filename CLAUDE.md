@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` — run ESLint over the repo
 - `npm run preview` — serve the production build locally
 - `npm run alerter` — run the Meteora new-pool alerting service (see below); polls continuously until killed
+- `npm run indicator-alerter` — run the technical-indicator combo alerting service (see below); polls continuously until killed
 
 There is no test runner configured in this project.
 
@@ -46,6 +47,36 @@ blocks the other. Full spec, rationale, and open questions: `docs/specs/meteora-
 There is a second, unimplemented spec for a Supertrend-flip Telegram alert at
 `docs/specs/telegram-alerts/` — unrelated code, do not conflate the two.
 
+## Technical-indicator alerting service (`indicator-alerter/`)
+
+Another standalone Node/TypeScript script, same shape as `alerter/` (not part of the Vite app,
+type-checked only via `tsconfig.indicator-alerter.json`, no build step, run with
+`npm run indicator-alerter`). It watches a **user-maintained watchlist** of Solana token mints —
+`indicator-alerter/watchlist.json` (gitignored; copy `watchlist.example.json` to start; a plain
+JSON array of `{ "mint": "...", "label"?: "..." }` or bare mint strings, re-read every cycle so
+adding/removing a CA takes effect without a restart) — and sends a Discord/Telegram alert
+(reusing the same `ALERT_CHANNELS`/`DISCORD_WEBHOOK_URL`/`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`
+config as `alerter/`) when a **combo signal** fires on a **closed** 15-minute candle: at least 2
+of these 3 must trigger on the same candle (`indicator-alerter/signalDetector.ts`,
+`REQUIRED_SIGNALS`) —
+
+- **Bollinger (20, 2)** breakout: close crosses above the upper band.
+- **MACD (12, 26, 9 on close)**: histogram crosses from ≤0 (red) to >0 (green) — i.e. the MACD
+  line crosses above its signal line.
+- **RSI(2)**: crosses above 90 (extreme overbought, not the oversold-bounce interpretation).
+
+Candles come from GeckoTerminal's free OHLCV endpoint (`api.geckoterminal.com`, no key), which is
+per-*pool* not per-mint, so `poolResolver.ts` resolves each watchlist mint to its most-liquid pool
+once and caches it in state. `indicators.ts` holds the pure indicator math (SMA/stddev/EMA/Wilder
+RSI); `ohlcvClient.ts` fetches and normalizes candles, always dropping the still-open candle
+(anti-repainting — signals are only ever evaluated on closed candles, per an explicit product
+decision). `stateStore.ts` persists, per mint, the resolved pool and the last processed closed
+candle timestamp: this makes evaluation idempotent (a candle is never re-evaluated) and gives a
+**silent bootstrap** — a newly-added watchlist entry registers its state on the first cycle
+without alerting, so it never fires immediately on a pre-existing condition. Each watchlist entry
+is processed in isolation (`Promise.allSettled` in `index.ts`) so one token's API failure never
+blocks the others. A volume-spike signal was considered and explicitly dropped from scope.
+
 ## Configuration
 
 - `VITE_BIRDEYE_API_KEY` (required for `/filter`) — read via `import.meta.env.VITE_BIRDEYE_API_KEY`.
@@ -59,3 +90,8 @@ gain a `VITE_` prefix — they are server secrets, not client-visible config: `A
 `TELEGRAM_CHAT_ID`, and optionally `SCAN_INTERVAL_MS`, `MIN_TVL_ALERT`, `EXCLUDE_BLACKLISTED`,
 `SEEN_POOLS_MAX` (defaults documented in `.env.example`). `alerter/config.ts` refuses to start if
 a channel listed in `ALERT_CHANNELS` is missing its required secret(s).
+
+`indicator-alerter/` reuses the same `ALERT_CHANNELS`/`DISCORD_WEBHOOK_URL`/`TELEGRAM_BOT_TOKEN`/
+`TELEGRAM_CHAT_ID` secrets (same validation rule as `alerter/config.ts`) plus its own optional,
+non-conflicting vars: `INDICATOR_SCAN_INTERVAL_MS`, `INDICATOR_CANDLE_LIMIT`,
+`INDICATOR_WATCHLIST_PATH`, `INDICATOR_STATE_FILE_PATH` (defaults in `.env.example`).

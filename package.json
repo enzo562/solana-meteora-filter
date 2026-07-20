@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "alerter": "node --env-file=.env alerter/index.ts"
+    "alerter": "node --env-file=.env alerter/index.ts",
+    "indicator-alerter": "node --env-file=.env indicator-alerter/index.ts"
   },
   "dependencies": {
     "react": "^19.2.6",

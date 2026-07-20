@@ -14,6 +14,8 @@ dist-ssr
 .env
 .env.local
 alerter/.state
+indicator-alerter/.state
+indicator-alerter/watchlist.json
 
 # Editor directories and files
 .vscode/*
