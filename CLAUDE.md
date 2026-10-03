@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 - `npm run dev` — start the Vite dev server with HMR
-- `npm run build` — type-check (`tsc -b`) then produce a production build; the build fails on any TypeScript error
+- `npm run build` — type-check (`tsc -b`) then produce a production build; the build fails on any TypeScript error. `tsconfig.json` references the SPA *and* both Node services (`tsconfig.alerter.json`, `tsconfig.indicator-alerter.json`), so a type error in `alerter/` or `indicator-alerter/` also breaks the build. `npx tsc -b` alone is the quickest full type-check.
 - `npm run lint` — run ESLint over the repo
 - `npm run preview` — serve the production build locally
 - `npm run alerter` — run the Meteora new-pool alerting service (see below); polls continuously until killed
@@ -25,19 +25,22 @@ A single-page React 19 + TypeScript + Vite app for scouting Solana tokens and Me
 - **`src/pages/SolanaTrackerPage.tsx`** — queries the Solana Tracker Data API (`data.solanatracker.io/tokens/trending/5m`). Requires `VITE_SOLANATRACKER_API_KEY`; renders a setup-instructions screen instead of fetching when the key is missing. Polls every 30s.
 - **`src/pages/PoolsPage.tsx`** — polls the Meteora DLMM data API (`dlmm.datapi.meteora.ag/pools`) for the newest pools every 15s, sorted by creation time.
 - **`src/pages/TokenScannerPage.tsx`** — paste-a-CA risk scanner, analyzed on demand (no polling). Fetches RugCheck (`api.rugcheck.xyz/v1/tokens/{mint}/report`) for the global risk score, insiders, mint/freeze authority and LP lock (derived from `report`'s `markets[]`, since `lpLockedPct` only exists at the top level on `/report/summary`, not `/report`), and DexScreener orders for the "Dex Paid" badge; GMGN/Deepnets/RugCheck/DexScreener are external links only (no free structured API), Bubblemaps is an embedded iframe. Each source is isolated per `BlockState` (idle/loading/ok/unknown/error) so one failing source never blocks the others. Also computes an explicitly-labeled experimental aggregate score (weighted RugCheck score/authorities/LP-lock/insiders, floored if RugCheck flags a `danger`-level risk) and keeps a `localStorage`-backed history/favorites of analyzed CAs. No API key required. Full spec: `docs/specs/token-scanner/`.
-- **`src/lib/apiError.ts`** — shared helper used by every token-listing page to turn a failed `fetch` `Response` into a readable `ApiFailure` (`readApiFailure`) and display string (`formatApiFailure`), distinguishing quota/auth/rate-limit/server-error causes from the HTTP status and response body.
+- **`src/lib/apiError.ts`** — shared helper used by every token-listing page to turn a failed `fetch` `Response` into a readable `ApiFailure` (`readApiFailure`) and display string (`formatApiFailure`), distinguishing quota/auth/rate-limit/server-error causes from the HTTP status and response body. It is also imported by the Node services (`alerter/poolFetcher.ts`, `indicator-alerter/ohlcvClient.ts`, `poolResolver.ts`) and compiled under their tsconfigs (`lib: ["ES2023"]`, no DOM), so it must stay free of browser-only APIs and `import.meta.env`.
 
 Common conventions across pages: filter/threshold constants are `const`s at module top, `formatAge()` converts Unix-second timestamps to human strings, polling is a `setInterval` inside a `useEffect` cleaned up on unmount, and UI is inline-styled monospace tables (no CSS framework). UI text is in French. `TokenScannerPage.tsx` is the one exception to polling: it's a manual, on-demand lookup (button/Enter, `AbortController` per analysis) rather than an interval.
 
 ## Alerting service (`alerter/`)
 
 Alongside the SPA, `alerter/` is a standalone Node script — not part of the Vite app, not routed,
-not built by `npm run build` (only type-checked, via `tsconfig.alerter.json`). It polls the same
+not bundled by Vite (only type-checked, via `tsconfig.alerter.json`). It polls the same
 Meteora DLMM pools endpoint used by `PoolsPage.tsx` on an interval, diffs the results against a
 locally persisted set of previously-seen pool addresses (`alerter/.state/seen-pools.json`,
 gitignored), and pushes an alert to Discord and/or Telegram for every genuinely new pool. Run it
 with `npm run alerter`; it uses Node's native TypeScript execution and `--env-file=.env` (no
-build step, no extra dependencies).
+build step, no extra dependencies). Because Node only strips types, code in both Node services
+must import relative modules with an explicit `.ts` extension (`./config.ts`) and avoid
+non-erasable syntax (enums, namespaces, constructor parameter properties) — enforced by
+`erasableSyntaxOnly` in their tsconfigs.
 
 The **first run** against an empty state file is a silent bootstrap: it registers all currently
 known pools without alerting, so restarting the service never floods the channels with a backlog
