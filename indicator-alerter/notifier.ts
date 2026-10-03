@@ -19,6 +19,9 @@ function formatCandleTime(candleTs: number): string {
     return new Date(candleTs * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
+// Ces alertes sont des signaux de SORTIE (prise de profits), jamais d'entrée — cf. signalDetector.ts.
+const EXIT_REASON = "Prise de profits — surchauffe haussière";
+
 function signalLabels(signals: IndicatorAlert["signals"]): string[] {
     const labels: string[] = [];
     if (signals.bbBreakout) labels.push("Bollinger cassée par le haut (20, 2)");
@@ -39,9 +42,10 @@ export function discordNotifier(webhookUrl: string): Notifier {
             const body = {
                 embeds: [
                     {
-                        title: `📈 SIGNAL COMBO · ${alert.label}`,
+                        title: `🔴 SIGNAL DE SORTIE · ${alert.label}`,
+                        description: EXIT_REASON,
                         url: dexscreenerUrl(alert.pool),
-                        color: 3066993,
+                        color: 15158332,
                         fields: [
                             { name: "Prix", value: formatPrice(alert.price), inline: true },
                             {
@@ -83,7 +87,8 @@ export function telegramNotifier(botToken: string, chatId: string): Notifier {
         async send(alert) {
             const labels = signalLabels(alert.signals);
             const text = [
-                `📈 <b>SIGNAL COMBO</b> · ${escapeHtml(alert.label)} (${alert.signals.triggeredCount}/3)`,
+                `🔴 <b>SIGNAL DE SORTIE</b> · ${escapeHtml(alert.label)} (${alert.signals.triggeredCount}/3)`,
+                escapeHtml(EXIT_REASON),
                 "",
                 ...labels.map((l) => `✅ ${escapeHtml(l)}`),
                 "",

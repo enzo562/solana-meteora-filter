@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run lint` — run ESLint over the repo
 - `npm run preview` — serve the production build locally
 - `npm run alerter` — run the Meteora new-pool alerting service (see below); polls continuously until killed
-- `npm run indicator-alerter` — run the technical-indicator combo alerting service (see below); polls continuously until killed
+- `npm run indicator-alerter` — run the technical-indicator exit-signal (take-profit) alerting service (see below); polls continuously until killed
 
 There is no test runner configured in this project.
 
@@ -59,11 +59,15 @@ type-checked only via `tsconfig.indicator-alerter.json`, no build step, run with
 JSON array of `{ "mint": "...", "label"?: "..." }` or bare mint strings, re-read every cycle so
 adding/removing a CA takes effect without a restart) — and sends a Discord/Telegram alert
 (reusing the same `ALERT_CHANNELS`/`DISCORD_WEBHOOK_URL`/`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`
-config as `alerter/`) when a **combo signal** fires on a **closed** 15-minute candle: at least 2
-of these 3 must trigger on the same candle (`indicator-alerter/signalDetector.ts`,
-`REQUIRED_SIGNALS`) —
+config as `alerter/`) when a combo **exit signal** fires on a **closed** 15-minute candle. These
+are **take-profit / exit signals on a bullish overextension, not entry signals**: the watchlist
+holds tokens the user is already in, and there is deliberately no entry signal and no position
+tracking (explicit product decision; the alert is titled « 🔴 SIGNAL DE SORTIE »). Visual
+reference of the signals: `docs/specs/img_1.png`. At least 2 of these 3 must trigger on the same
+candle (`indicator-alerter/signalDetector.ts`, `REQUIRED_SIGNALS`) —
 
-- **Bollinger (20, 2)** breakout: close crosses above the upper band.
+- **Bollinger (20, 2)** breakout: close crosses above the upper band — measured on the **close,
+  never the wick/high** (explicit user decision; a wick poking above the band does not count).
 - **MACD (12, 26, 9 on close)**: histogram crosses from ≤0 (red) to >0 (green) — i.e. the MACD
   line crosses above its signal line.
 - **RSI(2)**: crosses above 90 (extreme overbought, not the oversold-bounce interpretation).

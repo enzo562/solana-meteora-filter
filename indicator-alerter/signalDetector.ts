@@ -1,7 +1,12 @@
-// Détection de la combo de signaux — fonction pure, sans I/O.
+// Détection de la combo de signaux de SORTIE — fonction pure, sans I/O.
+// Ce sont des signaux de prise de profits sur un excès haussier, pas des signaux d'entrée :
+// aucune entrée n'est configurée, par décision explicite de l'utilisateur (2026-10-03).
+// Exemple visuel : docs/specs/img_1.png (flèches vers 21:00).
 // Règle métier (confirmée par l'utilisateur) : une alerte ne part que si au moins 2 des 3
 // signaux suivants se déclenchent sur la MÊME bougie 15m fermée :
-//   - Bollinger (20, 2) : close qui casse la bande supérieure par le haut
+//   - Bollinger (20, 2) : close qui casse la bande supérieure par le haut — sur la CLÔTURE, jamais
+//     sur la mèche (high), par décision explicite de l'utilisateur (2026-10-04), même si une mèche
+//     qui dépasse la bande sans clôture au-dessus ne déclenche donc pas ce signal.
 //   - MACD (12, 26, 9 sur close) : histogramme qui passe de rouge (<=0) à vert (>0)
 //   - RSI(2) : qui croise au-dessus de 90 (surachat extrême)
 // Le signal "volume" évoqué initialement a été explicitement écarté par l'utilisateur.
