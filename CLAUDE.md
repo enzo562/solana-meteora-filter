@@ -102,3 +102,42 @@ a channel listed in `ALERT_CHANNELS` is missing its required secret(s).
 `TELEGRAM_CHAT_ID` secrets (same validation rule as `alerter/config.ts`) plus its own optional,
 non-conflicting vars: `INDICATOR_SCAN_INTERVAL_MS`, `INDICATOR_CANDLE_LIMIT`,
 `INDICATOR_WATCHLIST_PATH`, `INDICATOR_STATE_FILE_PATH` (defaults in `.env.example`).
+
+## Specs and research (`docs/`)
+
+Features are specified before implementation in **a single French document per feature,
+`docs/specs/<feature>/PLAN.md`** (user decision, 2026-10-04 — "un seul plan pour le moment", whatever
+the feature's size). It holds context and decisions, the rules not to break, the technical design,
+the lots with their verification, and the risks — no formal user stories, no duplication. Example:
+`docs/specs/watchlist-web/PLAN.md`.
+
+**Plan mode → `PLAN.md`:** plan mode only lets Claude write its own plan file (under
+`~/.claude/plans/`, outside the repo, lost to later sessions). So the plan written in plan mode *is*
+the spec: as soon as the user approves it, the **first action is to copy it verbatim** to
+`docs/specs/<feature>/PLAN.md`, and that copy is the reference from then on. Each `PLAN.md` states
+its implementation status in its header; read it before touching the corresponding feature. Small
+changes that need no plan record their durable decisions directly in code comments and in this file.
+
+**Later plans on the same feature** (user decision, 2026-10-04): the "copy verbatim" rule applies to
+the *first* plan only. A later plan-mode plan starts by reading the existing `PLAN.md` and describes
+only the change (what, why, affected sections, lots, verification). Once approved, it is **merged**
+into `PLAN.md`, never copied over it and never kept as a separate `PLAN-2.md`: update the affected
+sections so the document always describes the feature's *current* state, bump the version and the
+header status, and add a dated line to the **« Historique »** section at the top (what changed,
+why). A superseded decision is never just deleted — it stays in the Historique with the reason it
+changed, so nobody reverts it unknowingly.
+
+The older specs `meteora-pool-alerts/`, `telegram-alerts/`, `token-scanner/` and `paper-trading/`
+predate this rule and use three documents (`SPECIFICATION-FONCTIONNELLE.md`,
+`SPECIFICATION-TECHNIQUE.md`, `PLAN-DE-MISE-EN-OEUVRE.md`); that format was never an explicit decision,
+just the shape of the first spec (2026-07-17), copied afterwards. Leave them as they are until a new
+plan touches one: that plan's merge step first **fuses the three documents into a single
+`PLAN.md`** (as was done for `watchlist-web/`), then applies the change.
+
+Unimplemented specs: `telegram-alerts/` (Supertrend flip), `paper-trading/` (client-side DLMM
+LP P&L simulator, fees vs impermanent loss replayed from history, targeting
+`src/pages/PaperTradingPage.tsx` at `/paper-trading`), and `watchlist-web/PLAN.md` (a `/watchlist`
+page backed by a local **Java 25 / Spring Boot 4** service, `watchlist-api/`, that edits
+`indicator-alerter/watchlist.json` and only reads the alerter's `state.json`; Java was an explicit
+choice over a Node server). `docs/research/` holds exploratory notes
+that are not specs (e.g. `meteora-hawkfi-lparmy.md`, the background for the paper-trading spec).
