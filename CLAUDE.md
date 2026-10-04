@@ -112,7 +112,8 @@ A small **Java 25 / Spring Boot 4.1** service (Maven wrapper, `spring-boot-start
 Jackson 3 — packages `tools.jackson.*`) backing the `/watchlist` page; Java was an explicit user
 choice over a Node server. Run it with `npm run watchlist-api` (`.\mvnw.cmd spring-boot:run` from
 `watchlist-api/`, Windows; `JAVA_HOME` must point to a JDK ≥ 17 — JDK 25 is installed). It binds
-to **`127.0.0.1` only** (no auth, never exposed) on `WATCHLIST_API_PORT` (default 8080), and imports
+to **`127.0.0.1` only** (no auth, never exposed) on `WATCHLIST_API_PORT` (default 8080), rejects any
+non-local `Host` header with 403 (`HostHeaderFilter`, a DNS-rebinding guard — keep it), and imports
 the repo `.env` as a properties file (`spring.config.import`, so Windows paths there need `/`).
 
 File ownership is the contract with the alerter — don't break it:
