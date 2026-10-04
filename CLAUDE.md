@@ -6,18 +6,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `npm run dev` — start the Vite dev server with HMR
 - `npm run build` — type-check (`tsc -b`) then produce a production build; the build fails on any TypeScript error. `tsconfig.json` references the SPA *and* both Node services (`tsconfig.alerter.json`, `tsconfig.indicator-alerter.json`), so a type error in `alerter/` or `indicator-alerter/` also breaks the build. `npx tsc -b` alone is the quickest full type-check.
-- `npm run lint` — run ESLint over the repo
+- `npm run lint` — run ESLint over the repo. **It currently fails on pre-existing errors** in five
+  pages (`react-hooks/set-state-in-effect` in Filter/Gecko/DexScreener/SolanaTracker/Pools pages,
+  `react-hooks/purity` in `FilterPage.tsx`); lint the files you touch with `npx eslint <paths>`.
 - `npm run preview` — serve the production build locally
 - `npm run alerter` — run the Meteora new-pool alerting service (see below); polls continuously until killed
 - `npm run indicator-alerter` — run the technical-indicator exit-signal (take-profit) alerting service (see below); polls continuously until killed
+- `npm run watchlist-api` — run the local Java watchlist service (see below) on `127.0.0.1:8080`
+- `npm run up` — run `dev`, `indicator-alerter` and `watchlist-api` together (`concurrently`, prefixed logs; when one exits the others are stopped)
 
-There is no test runner configured in this project.
+Tests:
+- `npm test` — Node's built-in `node:test` runner (no extra dependency) over
+  `indicator-alerter/**/*.test.ts` and `src/**/*.test.ts`; run one file with
+  `node --test path/to/file.test.ts`. Test files in `src/` are type-checked by `tsconfig.node.json`
+  (Node types) and excluded from `tsconfig.app.json`; only pure modules are tested this way (no
+  React rendering tests).
+- `cd watchlist-api && .\mvnw.cmd test` — JUnit 5 tests of the Java service; one class with
+  `-Dtest=WatchlistServiceTest`.
 
 ## Architecture
 
 A single-page React 19 + TypeScript + Vite app for scouting Solana tokens and Meteora DLMM liquidity pools. Everything runs client-side in the browser — there is no backend; the app calls third-party crypto APIs directly with `fetch`.
 
-`src/App.tsx` sets up `react-router-dom` with six routes (`/filter`, the default, `/gecko`, `/dexscreener`, `/solanatracker`, `/pools`, `/scanner`) plus a top nav (`NAV_ITEMS`). Each route is a self-contained page component under `src/pages/` that owns its own data-fetching, polling, loading/error state, and rendering. There is no shared state or store between pages — the only shared code is `src/lib/apiError.ts` — treat each page as an independent unit otherwise.
+`src/App.tsx` sets up `react-router-dom` with seven routes (`/filter`, the default, `/gecko`, `/dexscreener`, `/solanatracker`, `/pools`, `/scanner`, `/watchlist`) plus a top nav (`NAV_ITEMS`). Each route is a self-contained page component under `src/pages/` that owns its own data-fetching, polling, loading/error state, and rendering. There is no shared state or store between pages — shared code lives only in `src/lib/` — treat each page as an independent unit otherwise. The SPA has no backend of its own; the one exception is `/watchlist`, which talks to the local `watchlist-api` service through a Vite proxy (see below).
 
 - **`src/pages/FilterPage.tsx`** — queries the Birdeye API (`public-api.birdeye.so`) for Solana tokens filtered by hard-coded thresholds (`MIN_VOLUME_5M`, `MAX_MARKET_CAP`), auto-refreshing every 30s. Requires the Birdeye API key (see below). Note: its default export is named `App`, but it is the Filter page, not the root component.
 - **`src/pages/GeckoTerminalPage.tsx`** — queries the GeckoTerminal API (`api.geckoterminal.com`) for Solana pools sorted by 24h volume server-side, then filters/sorts by 5m volume client-side (the API has no native 5m sort). No API key required. Polls every 30s.
@@ -25,9 +36,12 @@ A single-page React 19 + TypeScript + Vite app for scouting Solana tokens and Me
 - **`src/pages/SolanaTrackerPage.tsx`** — queries the Solana Tracker Data API (`data.solanatracker.io/tokens/trending/5m`). Requires `VITE_SOLANATRACKER_API_KEY`; renders a setup-instructions screen instead of fetching when the key is missing. Polls every 30s.
 - **`src/pages/PoolsPage.tsx`** — polls the Meteora DLMM data API (`dlmm.datapi.meteora.ag/pools`) for the newest pools every 15s, sorted by creation time.
 - **`src/pages/TokenScannerPage.tsx`** — paste-a-CA risk scanner, analyzed on demand (no polling). Fetches RugCheck (`api.rugcheck.xyz/v1/tokens/{mint}/report`) for the global risk score, insiders, mint/freeze authority and LP lock (derived from `report`'s `markets[]`, since `lpLockedPct` only exists at the top level on `/report/summary`, not `/report`), and DexScreener orders for the "Dex Paid" badge; GMGN/Deepnets/RugCheck/DexScreener are external links only (no free structured API), Bubblemaps is an embedded iframe. Each source is isolated per `BlockState` (idle/loading/ok/unknown/error) so one failing source never blocks the others. Also computes an explicitly-labeled experimental aggregate score (weighted RugCheck score/authorities/LP-lock/insiders, floored if RugCheck flags a `danger`-level risk) and keeps a `localStorage`-backed history/favorites of analyzed CAs. No API key required. Full spec: `docs/specs/token-scanner/`.
+- **`src/pages/WatchlistPage.tsx`** — manages the `indicator-alerter` watchlist: lists tokens with their watch status, adds (CA validated client-side), renames inline, removes with an in-row confirmation, and shows banners for an unreachable service / inactive alerter. Calls `/api/watchlist` (proxied by Vite to `watchlist-api`); polls every 30s. Spec: `docs/specs/watchlist-web/PLAN.md`.
+- **`src/lib/solanaAddress.ts`** — `isValidSolanaAddress` (base58 + exactly 32 decoded bytes), shared by the scanner and the watchlist page; `watchlist-api`'s `SolanaAddress.java` applies the same rule.
+- **`src/lib/watchlist.ts`** — types of the watchlist API contract and the page's pure helpers (status labels, candle time, `readWatchlistError`, which tells an unreachable service — proxy 5xx without an `{error,message}` body — from a business error).
 - **`src/lib/apiError.ts`** — shared helper used by every token-listing page to turn a failed `fetch` `Response` into a readable `ApiFailure` (`readApiFailure`) and display string (`formatApiFailure`), distinguishing quota/auth/rate-limit/server-error causes from the HTTP status and response body. It is also imported by the Node services (`alerter/poolFetcher.ts`, `indicator-alerter/ohlcvClient.ts`, `poolResolver.ts`) and compiled under their tsconfigs (`lib: ["ES2023"]`, no DOM), so it must stay free of browser-only APIs and `import.meta.env`.
 
-Common conventions across pages: filter/threshold constants are `const`s at module top, `formatAge()` converts Unix-second timestamps to human strings, polling is a `setInterval` inside a `useEffect` cleaned up on unmount, and UI is inline-styled monospace tables (no CSS framework). UI text is in French. `TokenScannerPage.tsx` is the one exception to polling: it's a manual, on-demand lookup (button/Enter, `AbortController` per analysis) rather than an interval.
+Common conventions across pages: filter/threshold constants are `const`s at module top, `formatAge()` converts Unix-second timestamps to human strings, polling is a `setInterval` inside a `useEffect` cleaned up on unmount, and UI uses the shared CSS classes of `src/index.css` / `src/App.css` (`page`, `page-header`, `data-table`, `alert alert-error|alert-warn`, `btn`, `badge`, `scan-input`, `link-btn`…; no CSS framework). UI text is in French. `TokenScannerPage.tsx` is the one exception to polling: it's a manual, on-demand lookup (button/Enter, `AbortController` per analysis) rather than an interval.
 
 ## Alerting service (`alerter/`)
 
@@ -80,9 +94,35 @@ RSI); `ohlcvClient.ts` fetches and normalizes candles, always dropping the still
 decision). `stateStore.ts` persists, per mint, the resolved pool and the last processed closed
 candle timestamp: this makes evaluation idempotent (a candle is never re-evaluated) and gives a
 **silent bootstrap** — a newly-added watchlist entry registers its state on the first cycle
-without alerting, so it never fires immediately on a pre-existing condition. Each watchlist entry
+without alerting, so it never fires immediately on a pre-existing condition. Each cycle also
+**purges the state of mints no longer in the watchlist** (`purgeRemovedTokens`, also when the
+watchlist is empty), so a token removed then re-added bootstraps again instead of replaying old
+candles; an invalid watchlist JSON throws *before* the purge and leaves the state untouched — keep
+that order. A GeckoTerminal **404** on pool resolution means "no pool" (`resolveMostLiquidPool`
+returns `null`), not an outage; other API errors still throw. Each watchlist entry
 is processed in isolation (`Promise.allSettled` in `index.ts`) so one token's API failure never
 blocks the others. A volume-spike signal was considered and explicitly dropped from scope.
+Known gap: after a long alerter downtime, a token still in the watchlist replays the missed
+candles and may alert once on an old signal (not handled; deleting `.state/state.json` before
+restarting forces a silent bootstrap).
+
+## Local watchlist service (`watchlist-api/`)
+
+A small **Java 25 / Spring Boot 4.1** service (Maven wrapper, `spring-boot-starter-webmvc` only,
+Jackson 3 — packages `tools.jackson.*`) backing the `/watchlist` page; Java was an explicit user
+choice over a Node server. Run it with `npm run watchlist-api` (`.\mvnw.cmd spring-boot:run` from
+`watchlist-api/`, Windows; `JAVA_HOME` must point to a JDK ≥ 17 — JDK 25 is installed). It binds
+to **`127.0.0.1` only** (no auth, never exposed) on `WATCHLIST_API_PORT` (default 8080), and imports
+the repo `.env` as a properties file (`spring.config.import`, so Windows paths there need `/`).
+
+File ownership is the contract with the alerter — don't break it:
+- it **writes** `indicator-alerter/watchlist.json` (atomic temp-file + rename, re-reading the file
+  before every write so manual edits are not lost; refuses to write when the JSON is invalid);
+- it only **reads** `indicator-alerter/.state/state.json`, which the alerter alone writes.
+
+API (`/api/health`, `GET|POST /api/watchlist`, `PATCH|DELETE /api/watchlist/{mint}`): every error
+is `{ "error": "<CODE>", "message": "<French text>" }`; `GET` returns the alerter's activity and a
+per-token `WatchStatus` derived from `state.json`. Full design: `docs/specs/watchlist-web/PLAN.md`.
 
 ## Configuration
 
@@ -102,6 +142,8 @@ a channel listed in `ALERT_CHANNELS` is missing its required secret(s).
 `TELEGRAM_CHAT_ID` secrets (same validation rule as `alerter/config.ts`) plus its own optional,
 non-conflicting vars: `INDICATOR_SCAN_INTERVAL_MS`, `INDICATOR_CANDLE_LIMIT`,
 `INDICATOR_WATCHLIST_PATH`, `INDICATOR_STATE_FILE_PATH` (defaults in `.env.example`).
+`watchlist-api/` reads those same `INDICATOR_*` paths and interval, plus `WATCHLIST_API_PORT`
+(also read by `vite.config.ts` for the `/api` proxy, so both stay aligned).
 
 ## Specs and research (`docs/`)
 
@@ -134,10 +176,8 @@ just the shape of the first spec (2026-07-17), copied afterwards. Leave them as 
 plan touches one: that plan's merge step first **fuses the three documents into a single
 `PLAN.md`** (as was done for `watchlist-web/`), then applies the change.
 
-Unimplemented specs: `telegram-alerts/` (Supertrend flip), `paper-trading/` (client-side DLMM
-LP P&L simulator, fees vs impermanent loss replayed from history, targeting
-`src/pages/PaperTradingPage.tsx` at `/paper-trading`), and `watchlist-web/PLAN.md` (a `/watchlist`
-page backed by a local **Java 25 / Spring Boot 4** service, `watchlist-api/`, that edits
-`indicator-alerter/watchlist.json` and only reads the alerter's `state.json`; Java was an explicit
-choice over a Node server). `docs/research/` holds exploratory notes
+Implemented: `watchlist-web/PLAN.md` (the `/watchlist` page + `watchlist-api/`). Unimplemented
+specs: `telegram-alerts/` (Supertrend flip) and `paper-trading/` (client-side DLMM LP P&L
+simulator, fees vs impermanent loss replayed from history, targeting
+`src/pages/PaperTradingPage.tsx` at `/paper-trading`). `docs/research/` holds exploratory notes
 that are not specs (e.g. `meteora-hawkfi-lparmy.md`, the background for the paper-trading spec).

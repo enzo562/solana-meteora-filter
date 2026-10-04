@@ -5,7 +5,7 @@
 > petit service local **Java 25 / Spring Boot 4.1** (`watchlist-api/`), qui édite
 > `indicator-alerter/watchlist.json` à la place de l'édition manuelle.
 >
-> Statut : **spécifié, non implémenté**. Version 2.1 — 2026-10-04 (cf. Historique).
+> Statut : **implémenté** (2026-10-04, branche `feat/watchlist-web`). Version 3 — 2026-10-04 (cf. Historique).
 > Cibles : `watchlist-api/`, `src/pages/WatchlistPage.tsx`, `vite.config.ts`, `src/App.tsx`,
 > `indicator-alerter/index.ts` (purge de l'état, §7).
 
@@ -16,6 +16,7 @@
 | v1 | 2026-10-03 | Spec initiale en trois documents (fonctionnelle, technique, plan de mise en œuvre) | Format des specs précédentes du projet |
 | v2 | 2026-10-04 | Fusion en ce seul `PLAN.md` ; JDK 25 noté comme installé et configuré | Trois documents jugés trop lourds pour une fonctionnalité de cette taille (décision d'Enzo) ; le passage à Java 25 a été fait le 2026-10-03 |
 | v2.1 | 2026-10-04 | Corrections de relecture : `NO_POOL` ne couvre pas les erreurs d'API de résolution (§4), limites de l'indicateur d'activité (§4), chemins Windows dans `.env` (§5.2), cas limites de la purge (§7) | Affirmations du plan confrontées au code réel de `indicator-alerter` |
+| v3 | 2026-10-04 | **Implémenté** (Lots 0 à 6). Écarts avec la v2.1, reportés dans les sections concernées : un 404 de GeckoTerminal vaut « aucun pool » dans l'alerteur (§4) ; valeurs `INDICATOR_*` vides = défauts de l'alerteur via `ConfigValues` (§5.2) ; erreur `INVALID_BODY` ajoutée (§6) ; page en classes CSS partagées et port du proxy lu avec `loadEnv` (§8, T19 fait) ; script `.\mvnw.cmd` (§9) ; une seule `WatchlistException` porteuse du code HTTP au lieu d'une classe par erreur ; `Clock` injectée pour tester le seuil d'inactivité ; tests `node:test` côté TypeScript (`npm test`, §11) | Constats faits en implémentant : comportement réel de GeckoTerminal (404) et de npm sous `cmd.exe`, `.env.example` aux valeurs vides, règles de lint React, classes CSS réellement utilisées par les pages |
 
 ---
 
@@ -126,11 +127,13 @@ comme inactif au-delà de `3 × INDICATOR_SCAN_INTERVAL_MS`, soit 6 min par déf
 vide, l'activité est « inconnue ».
 
 **Limites, dues au code actuel de l'alerteur** (`processEntry` dans `index.ts`) :
-- si `resolveMostLiquidPool` **lève une erreur** (GeckoTerminal en panne, limite de requêtes),
+- un mint **inconnu** de GeckoTerminal (CA erroné) reçoit un **404** : depuis la v3,
+  `resolveMostLiquidPool` le traite comme « aucun pool » et renvoie `null`, d'où `NO_POOL`. Avant
+  ce correctif, le token restait « en attente » indéfiniment ;
+- si `resolveMostLiquidPool` **lève une erreur** (GeckoTerminal en panne, limite de requêtes 429),
   l'exception n'est pas rattrapée dans `processEntry`. Le cycle journalise
   `indicator-alerter.cycle.token_failed` et **n'écrit aucune entrée** pour ce token. Un token tout
-  juste ajouté reste alors « ⏳ En attente du premier cycle » tant que l'erreur dure : ce n'est pas
-  `NO_POOL` ;
+  juste ajouté reste alors « ⏳ En attente du premier cycle » tant que l'erreur dure ;
 - pour la même raison, si **tous** les tokens échouent à chaque cycle, `updatedAt` ne bouge plus et
   l'alerteur apparaît « inactif » alors qu'il tourne. Le bandeau dit donc « inactif **ou en
   erreur** depuis X min — voir ses logs ».
@@ -175,9 +178,11 @@ server.address=127.0.0.1
 server.port=${WATCHLIST_API_PORT:8080}
 
 # Chemins relatifs au dossier de lancement (watchlist-api/, cf. §9).
-watchlist.file=${INDICATOR_WATCHLIST_PATH:../indicator-alerter/watchlist.json}
-watchlist.state-file=${INDICATOR_STATE_FILE_PATH:../indicator-alerter/.state/state.json}
-watchlist.alerter-scan-interval-ms=${INDICATOR_SCAN_INTERVAL_MS:120000}
+# Mêmes variables que l'alerteur. Vide ou absent = défaut de l'alerteur, appliqué en Java
+# (ConfigValues), car un placeholder ${X:défaut} ne couvre pas une valeur vide.
+watchlist.file=${INDICATOR_WATCHLIST_PATH:}
+watchlist.state-file=${INDICATOR_STATE_FILE_PATH:}
+watchlist.alerter-scan-interval-ms=${INDICATOR_SCAN_INTERVAL_MS:}
 ```
 
 L'import du `.env` charge aussi les secrets Discord et Telegram dans l'environnement Spring.
@@ -405,8 +410,8 @@ l'erreur de syntaxe.
 |---|---|---|---|
 | `GET /api/health` | — | `200 { "status": "ok" }` | — |
 | `GET /api/watchlist` | — | `200` (ci-dessous) | `409 INVALID_WATCHLIST_FILE` |
-| `POST /api/watchlist` | `{ "mint", "label"? }` | `201` entrée créée | `400 INVALID_MINT`, `400 INVALID_LABEL`, `409 DUPLICATE_MINT`, `409 INVALID_WATCHLIST_FILE` |
-| `PATCH /api/watchlist/{mint}` | `{ "label": "..." \| null }` | `200` entrée modifiée | `400 INVALID_LABEL`, `404 NOT_FOUND`, `409 INVALID_WATCHLIST_FILE` |
+| `POST /api/watchlist` | `{ "mint", "label"? }` | `201` entrée créée | `400 INVALID_BODY`, `400 INVALID_MINT`, `400 INVALID_LABEL`, `409 DUPLICATE_MINT`, `409 INVALID_WATCHLIST_FILE` |
+| `PATCH /api/watchlist/{mint}` | `{ "label": "..." \| null }` | `200` entrée modifiée | `400 INVALID_BODY`, `400 INVALID_LABEL`, `404 NOT_FOUND`, `409 INVALID_WATCHLIST_FILE` |
 | `DELETE /api/watchlist/{mint}` | — | `204` | `404 NOT_FOUND`, `409 INVALID_WATCHLIST_FILE` |
 
 ```json
@@ -474,8 +479,8 @@ Deux cas limites à garder en tête :
 - **Routage** : `{ to: "/watchlist", label: "Watchlist" }` dans `NAV_ITEMS`, et
   `<Route path="/watchlist" element={<WatchlistPage />} />` dans `src/App.tsx`.
 - **Proxy** (`vite.config.ts`) : `server.proxy` et `preview.proxy` avec
-  `{ "/api": "http://127.0.0.1:8080" }`. Si le port change, le lire avec `loadEnv` plutôt que de le
-  coder en dur.
+  `{ "/api": "http://127.0.0.1:<port>" }`, le port étant lu dans `WATCHLIST_API_PORT` avec `loadEnv`
+  (défaut 8080), comme le service.
 - **Types** :
 
 ```ts
@@ -498,7 +503,8 @@ interface ApiError { error: string; message: string }
   `src/lib/` et partagée. Le service revalide de toute façon.
 - **Retrait** : confirmation dans la ligne (« Retirer » → « Confirmer ? » / « Annuler »), sans
   `window.confirm`.
-- **Affichage** : tableau monospace en styles en ligne, comme les autres pages. Colonnes : label
+- **Affichage** : classes CSS partagées des autres pages (`page`, `data-table`, `alert`, `btn`,
+  `scan-input`…) ; types et logique pure dans `src/lib/watchlist.ts` (testés avec `node:test`). Colonnes : label
   (modifiable), CA abrégé et copiable, statut (§4), dernière bougie évaluée, actions. Liens
   DexScreener et GeckoTerminal quand le pool est connu. Sous le formulaire : « Pris en compte au
   prochain cycle de l'alerteur (≤ 2 min). »
@@ -510,12 +516,13 @@ interface ApiError { error: string; message: string }
 Scripts à ajouter à `package.json` :
 
 ```json
-"watchlist-api": "cd watchlist-api && mvnw spring-boot:run",
+"watchlist-api": "cd watchlist-api && .\\mvnw.cmd spring-boot:run",
 "up": "concurrently -k -n web,alerter,api -c cyan,magenta,yellow \"npm:dev\" \"npm:indicator-alerter\" \"npm:watchlist-api\""
 ```
 
-- Sous Windows, npm lance les scripts avec `cmd.exe` : `mvnw` résout `mvnw.cmd`, avec
-  `watchlist-api/` comme dossier de travail, d'où les chemins `../` du §5.2.
+- Sous Windows, npm lance les scripts avec `cmd.exe`, qui **ne trouve pas** `mvnw` seul dans le
+  dossier courant : d'où `.\mvnw.cmd` explicite. Le service démarre avec `watchlist-api/` comme
+  dossier de travail, d'où les chemins `../` du §5.2.
 - `up` demande `npm i -D concurrently` (Q2) ; `-k` arrête les trois services si l'un tombe.
 - Dans IntelliJ : ajouter `watchlist-api/pom.xml` comme projet Maven, et régler le dossier de
   travail de la configuration d'exécution sur `watchlist-api/`.
@@ -525,6 +532,8 @@ Scripts à ajouter à `package.json` :
 ## 10. Lots
 
 Chaque lot est utilisable seul. Le service se teste avec `curl` avant que la page existe.
+**Tous les lots sont livrés (2026-10-04)**, vérifications comprises ; le détail des tests et des
+vérifications réelles est dans les messages de commit de la branche `feat/watchlist-web`.
 
 | Lot | Contenu | Priorité | Effort | Vérification |
 |---|---|---|---|---|
@@ -569,7 +578,9 @@ Lot 4 : ½ journée ; Lots 5-6 : 1 h).
 - `WatchlistController` : `@WebMvcTest` (starter `spring-boot-starter-webmvc-test`, service simulé
   avec `@MockitoBean`) pour les codes HTTP du §6.
 
-Côté TypeScript (pas de test runner) : `npx tsc -b` et `npm run lint`.
+Côté TypeScript : `npm test` (`node:test`, sans dépendance) pour la purge de l'état, la résolution
+de pool, `isValidSolanaAddress` et la logique pure de la page ; plus `npx tsc -b` et `npx eslint`
+sur les fichiers touchés (`npm run lint` échoue sur des erreurs préexistantes d'autres pages).
 
 **Scénario de bout en bout :**
 1. `npm run up`, puis ouvrir `http://localhost:5173/watchlist` ;
@@ -615,6 +626,6 @@ Non impactés : `tsconfig*.json` (Java hors de `tsc`), ESLint (`**/*.{ts,tsx}` u
 
 | # | Question | Hypothèse en attendant |
 |---|---|---|
-| Q1 | Le port 8080 est-il libre ? (`Get-NetTCPConnection -LocalPort 8080 -State Listen`) | Oui ; sinon `WATCHLIST_API_PORT` |
-| Q2 | Ajouter `concurrently` (devDependency) pour `npm run up` ? | Oui (Lot 5, Should) |
-| Q3 | 40 caractères pour un label, est-ce suffisant ? | Oui |
+| Q1 | Le port 8080 est-il libre ? | ✅ Vérifié libre le 2026-10-04 ; sinon `WATCHLIST_API_PORT` |
+| Q2 | Ajouter `concurrently` (devDependency) pour `npm run up` ? | ✅ Retenu (Lot 5) |
+| Q3 | 40 caractères pour un label, est-ce suffisant ? | Retenu, comptés en caractères affichés (un emoji = 1) |

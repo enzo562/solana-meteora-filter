@@ -1,7 +1,7 @@
 // Formes alignées sur les réponses de l'API publique GeckoTerminal (api.geckoterminal.com/api/v2).
 
 export interface Candle {
-    ts: number; // unix seconds, heure de clôture de la bougie
+    ts: number; // unix seconds, heure d'OUVERTURE de la bougie (GeckoTerminal ; cf. ohlcvClient.ts)
     open: number;
     high: number;
     low: number;
