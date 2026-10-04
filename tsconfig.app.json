@@ -21,5 +21,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Les tests node:test de src/ sont vérifiés par tsconfig.node.json (types Node, pas de DOM).
+  "exclude": ["src/**/*.test.ts"]
 }
