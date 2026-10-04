@@ -21,9 +21,13 @@ public class AlerterStateReader {
     private final Path file;
     private final JsonMapper mapper;
 
-    public AlerterStateReader(@Value("${watchlist.state-file}") String file, JsonMapper mapper) {
-        this.file = Path.of(file).toAbsolutePath().normalize();
+    public AlerterStateReader(@Value("${watchlist.state-file:}") String file, JsonMapper mapper) {
+        this.file = Path.of(ConfigValues.orDefault(file, ConfigValues.DEFAULT_STATE_FILE)).toAbsolutePath().normalize();
         this.mapper = mapper;
+    }
+
+    Path file() {
+        return file;
     }
 
     // Node écrit ce fichier de façon non atomique : un contenu tronqué veut dire « en cours

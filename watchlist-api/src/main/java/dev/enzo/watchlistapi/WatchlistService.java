@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,11 +26,17 @@ public class WatchlistService {
     private final long scanIntervalMs;
     private final Clock clock;
 
+    @Autowired
     public WatchlistService(
             WatchlistRepository repository,
             AlerterStateReader stateReader,
-            @Value("${watchlist.alerter-scan-interval-ms}") long scanIntervalMs,
+            @Value("${watchlist.alerter-scan-interval-ms:}") String rawScanIntervalMs,
             Clock clock) {
+        this(repository, stateReader,
+                ConfigValues.millisOrDefault(rawScanIntervalMs, ConfigValues.DEFAULT_SCAN_INTERVAL_MS), clock);
+    }
+
+    WatchlistService(WatchlistRepository repository, AlerterStateReader stateReader, long scanIntervalMs, Clock clock) {
         this.repository = repository;
         this.stateReader = stateReader;
         this.scanIntervalMs = scanIntervalMs;

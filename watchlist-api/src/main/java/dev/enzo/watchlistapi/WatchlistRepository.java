@@ -22,9 +22,13 @@ public class WatchlistRepository {
     private final Path file;
     private final JsonMapper mapper;
 
-    public WatchlistRepository(@Value("${watchlist.file}") String file, JsonMapper mapper) {
-        this.file = Path.of(file).toAbsolutePath().normalize();
+    public WatchlistRepository(@Value("${watchlist.file:}") String file, JsonMapper mapper) {
+        this.file = Path.of(ConfigValues.orDefault(file, ConfigValues.DEFAULT_WATCHLIST_FILE)).toAbsolutePath().normalize();
         this.mapper = mapper;
+    }
+
+    Path file() {
+        return file;
     }
 
     // Mêmes règles que readWatchlist (indicator-alerter/watchlist.ts) : chaîne nue ou { mint, label? },
