@@ -11,7 +11,8 @@
     "alerter": "node --env-file=.env alerter/index.ts",
     "indicator-alerter": "node --env-file=.env indicator-alerter/index.ts",
     "test": "node --test \"indicator-alerter/**/*.test.ts\" \"src/**/*.test.ts\"",
-    "watchlist-api": "cd watchlist-api && .\\mvnw.cmd spring-boot:run"
+    "watchlist-api": "cd watchlist-api && .\\mvnw.cmd spring-boot:run",
+    "up": "concurrently -k -n web,alerter,api -c cyan,magenta,yellow \"npm:dev\" \"npm:indicator-alerter\" \"npm:watchlist-api\""
   },
   "dependencies": {
     "react": "^19.2.6",
@@ -24,6 +25,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^10.0.5",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
