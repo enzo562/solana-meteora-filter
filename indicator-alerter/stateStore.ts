@@ -4,7 +4,7 @@
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { StateMap, TokenState } from "./types.ts";
+import type { StateMap, TokenState, WatchlistEntry } from "./types.ts";
 
 export async function readState(filePath: string): Promise<StateMap> {
     try {
@@ -28,4 +28,14 @@ export async function writeState(filePath: string, state: StateMap): Promise<voi
 export function nextTokenState(existing: TokenState | undefined, mint: string, patch: Partial<TokenState>): TokenState {
     const base = existing ?? { mint, pool: null, lastProcessedCandleTs: null, updatedAt: 0 };
     return { ...base, ...patch, updatedAt: Date.now() };
+}
+
+// Supprime (en place) l'état des tokens retirés de la watchlist et renvoie leurs mints. Sans ça, un
+// token rajouté plus tard retrouverait son ancien lastProcessedCandleTs, sauterait l'amorçage
+// silencieux et rattraperait des bougies anciennes — avec à la clé une alerte sur un vieux signal.
+export function purgeRemovedTokens(state: StateMap, watchlist: WatchlistEntry[]): string[] {
+    const watched = new Set(watchlist.map((e) => e.mint));
+    const purged = Object.keys(state).filter((mint) => !watched.has(mint));
+    for (const mint of purged) delete state[mint];
+    return purged;
 }

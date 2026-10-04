@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "alerter": "node --env-file=.env alerter/index.ts",
-    "indicator-alerter": "node --env-file=.env indicator-alerter/index.ts"
+    "indicator-alerter": "node --env-file=.env indicator-alerter/index.ts",
+    "test": "node --test \"indicator-alerter/**/*.test.ts\""
   },
   "dependencies": {
     "react": "^19.2.6",

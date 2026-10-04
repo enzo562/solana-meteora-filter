@@ -1,6 +1,6 @@
 import { loadConfig, type IndicatorAlerterConfig } from "./config.ts";
 import { readWatchlist } from "./watchlist.ts";
-import { readState, writeState, nextTokenState } from "./stateStore.ts";
+import { readState, writeState, nextTokenState, purgeRemovedTokens } from "./stateStore.ts";
 import { resolveMostLiquidPool } from "./poolResolver.ts";
 import { fetchClosedCandles } from "./ohlcvClient.ts";
 import { evaluateCandleRange } from "./signalDetector.ts";
@@ -125,13 +125,21 @@ async function processEntry(
 }
 
 async function runCycle(config: IndicatorAlerterConfig, notifiers: Notifier[]): Promise<void> {
+    // Une watchlist au JSON invalide lève ici, AVANT la purge : le cycle est sauté sans toucher à
+    // l'état, pour qu'une faute de frappe ne fasse jamais oublier l'état de tous les tokens.
     const watchlist = await readWatchlist(config.watchlistFilePath);
+    const state = await readState(config.stateFilePath);
+
+    const purged = purgeRemovedTokens(state, watchlist);
+    if (purged.length > 0) {
+        logger.info("indicator-alerter.state.purged", { mints: purged });
+    }
+
     if (watchlist.length === 0) {
+        if (purged.length > 0) await writeState(config.stateFilePath, state);
         logger.info("indicator-alerter.cycle.empty_watchlist");
         return;
     }
-
-    const state = await readState(config.stateFilePath);
 
     const results = await Promise.allSettled(
         watchlist.map((entry) => processEntry(entry, config, state[entry.mint], notifiers))
