@@ -1,8 +1,6 @@
 package dev.enzo.watchlistapi;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,8 +29,8 @@ public class WatchlistController {
     }
 
     @GetMapping
-    public Map<String, List<WatchlistEntry>> list() throws IOException {
-        return Map.of("items", service.list());
+    public WatchlistOverview overview() throws IOException {
+        return service.overview();
     }
 
     @PostMapping

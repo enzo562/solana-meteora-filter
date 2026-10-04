@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,8 +28,10 @@ class WatchlistServiceTest {
     @BeforeEach
     void setUp() {
         file = dir.resolve("watchlist.json");
-        repository = new WatchlistRepository(file.toString(), JsonMapper.builder().build());
-        service = new WatchlistService(repository);
+        JsonMapper mapper = JsonMapper.builder().build();
+        repository = new WatchlistRepository(file.toString(), mapper);
+        service = new WatchlistService(repository,
+                new AlerterStateReader(dir.resolve("state.json").toString(), mapper), 120_000, Clock.systemUTC());
     }
 
     private static String codeOf(Runnable action) {

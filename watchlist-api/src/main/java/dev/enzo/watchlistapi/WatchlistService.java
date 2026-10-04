@@ -1,7 +1,14 @@
 package dev.enzo.watchlistapi;
 
+import dev.enzo.watchlistapi.WatchlistOverview.AlerterInfo;
+import dev.enzo.watchlistapi.WatchlistOverview.WatchlistItem;
 import java.io.IOException;
+import java.time.Clock;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 // Règles de gestion de la watchlist (PLAN.md §2). Les méthodes sont synchronized (deux onglets ou deux
@@ -10,15 +17,51 @@ import org.springframework.stereotype.Service;
 @Service
 public class WatchlistService {
     static final int MAX_LABEL_LENGTH = 40;
+    // Au-delà de 3 cycles sans mise à jour de l'état, l'alerteur est considéré inactif (ou en erreur).
+    private static final int INACTIVE_AFTER_CYCLES = 3;
 
     private final WatchlistRepository repository;
+    private final AlerterStateReader stateReader;
+    private final long scanIntervalMs;
+    private final Clock clock;
 
-    public WatchlistService(WatchlistRepository repository) {
+    public WatchlistService(
+            WatchlistRepository repository,
+            AlerterStateReader stateReader,
+            @Value("${watchlist.alerter-scan-interval-ms}") long scanIntervalMs,
+            Clock clock) {
         this.repository = repository;
+        this.stateReader = stateReader;
+        this.scanIntervalMs = scanIntervalMs;
+        this.clock = clock;
     }
 
-    public synchronized List<WatchlistEntry> list() throws IOException {
-        return repository.read();
+    public synchronized WatchlistOverview overview() throws IOException {
+        List<WatchlistEntry> entries = repository.read();
+        Optional<Map<String, AlerterState>> state = stateReader.read();
+
+        if (state.isEmpty()) {
+            List<WatchlistItem> items = entries.stream()
+                    .map(e -> new WatchlistItem(e.mint(), e.label(), null, null, null))
+                    .toList();
+            return new WatchlistOverview(new AlerterInfo(null, false, false), items);
+        }
+
+        Map<String, AlerterState> states = state.get();
+        List<WatchlistItem> items = entries.stream().map(e -> {
+            AlerterState s = states.get(e.mint());
+            return new WatchlistItem(e.mint(), e.label(), WatchStatus.of(s),
+                    s == null ? null : s.pool(), s == null ? null : s.lastProcessedCandleTs());
+        }).toList();
+
+        Long lastActivityMs = states.values().stream()
+                .map(AlerterState::updatedAt)
+                .filter(Objects::nonNull)
+                .max(Long::compare)
+                .orElse(null);
+        boolean active = lastActivityMs != null
+                && clock.millis() - lastActivityMs <= INACTIVE_AFTER_CYCLES * scanIntervalMs;
+        return new WatchlistOverview(new AlerterInfo(lastActivityMs, active, true), items);
     }
 
     public synchronized WatchlistEntry add(String rawMint, String rawLabel) throws IOException {

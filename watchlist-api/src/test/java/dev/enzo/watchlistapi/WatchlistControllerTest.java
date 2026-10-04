@@ -15,12 +15,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.io.IOException;
 import java.nio.file.Path;
+import dev.enzo.watchlistapi.WatchlistOverview.AlerterInfo;
+import dev.enzo.watchlistapi.WatchlistOverview.WatchlistItem;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(WatchlistController.class)
@@ -35,13 +38,23 @@ class WatchlistControllerTest {
     private WatchlistService service;
 
     @Test
-    void getListeLesEntrees() throws Exception {
-        when(service.list()).thenReturn(List.of(new WatchlistEntry(NKE, "NKE")));
+    void getRenvoieLAlerteurEtLesStatuts() throws Exception {
+        when(service.overview()).thenReturn(new WatchlistOverview(
+                new AlerterInfo(1791035219807L, true, true),
+                List.of(new WatchlistItem(NKE, "NKE", WatchStatus.WATCHING, "6kRo", 1791034200L),
+                        new WatchlistItem("SANSLABEL", null, WatchStatus.PENDING_FIRST_CYCLE, null, null))));
 
         mvc.perform(get("/api/watchlist"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].mint").value(NKE))
-                .andExpect(jsonPath("$.items[0].label").value("NKE"));
+                .andExpect(content().json("""
+                        {
+                          "alerter": { "lastActivityMs": 1791035219807, "active": true, "stateReadable": true },
+                          "items": [
+                            { "mint": "%s", "label": "NKE", "status": "WATCHING", "pool": "6kRo", "lastProcessedCandleTs": 1791034200 },
+                            { "mint": "SANSLABEL", "status": "PENDING_FIRST_CYCLE", "pool": null, "lastProcessedCandleTs": null }
+                          ]
+                        }
+                        """.formatted(NKE), JsonCompareMode.STRICT));
     }
 
     @Test
@@ -66,7 +79,7 @@ class WatchlistControllerTest {
 
     @Test
     void unFichierInvalideDonne409() throws Exception {
-        when(service.list()).thenThrow(new InvalidWatchlistFileException(Path.of("wl.json"), new RuntimeException("ligne 1")));
+        when(service.overview()).thenThrow(new InvalidWatchlistFileException(Path.of("wl.json"), new RuntimeException("ligne 1")));
 
         mvc.perform(get("/api/watchlist"))
                 .andExpect(status().isConflict())
@@ -75,7 +88,7 @@ class WatchlistControllerTest {
 
     @Test
     void uneErreurDisqueDonne500() throws Exception {
-        when(service.list()).thenThrow(new IOException("disque plein"));
+        when(service.overview()).thenThrow(new IOException("disque plein"));
 
         mvc.perform(get("/api/watchlist"))
                 .andExpect(status().isInternalServerError())
