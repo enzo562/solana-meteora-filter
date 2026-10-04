@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "alerter": "node --env-file=.env alerter/index.ts",
     "indicator-alerter": "node --env-file=.env indicator-alerter/index.ts",
-    "test": "node --test \"indicator-alerter/**/*.test.ts\""
+    "test": "node --test \"indicator-alerter/**/*.test.ts\"",
+    "watchlist-api": "cd watchlist-api && .\\mvnw.cmd spring-boot:run"
   },
   "dependencies": {
     "react": "^19.2.6",
