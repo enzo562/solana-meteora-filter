@@ -10,6 +10,11 @@ export async function resolveMostLiquidPool(mint: string): Promise<string | null
     const url = `${GECKOTERMINAL_BASE}/networks/solana/tokens/${mint}/pools`;
     const res = await fetch(url, { headers: { accept: "application/json" } });
 
+    // GeckoTerminal répond 404 pour un mint qu'il ne connaît pas (CA erroné, token sans liquidité) :
+    // c'est « aucun pool », pas une panne. Le token reçoit alors un état « pool introuvable » au lieu
+    // de rester indéfiniment « en attente du premier cycle » (PLAN.md watchlist-web §4).
+    if (res.status === 404) return null;
+
     if (!res.ok) {
         const failure = await readApiFailure("GeckoTerminal", res);
         throw new Error(formatApiFailure(failure));
