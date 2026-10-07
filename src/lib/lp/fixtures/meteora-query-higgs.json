@@ -1,0 +1,272 @@
+[
+ {
+  "address": "DQyGMAGx8nB6ykixotLNFC6eVVQjrMqz7AkRyinNkEm1",
+  "name": "HIGGS-SOL",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 0.3
+  },
+  "tvl": 150009.1382250623,
+  "volume": {
+   "24h": 1687574.322239941
+  },
+  "fees": {
+   "24h": 11191.91105466156
+  },
+  "is_blacklisted": false,
+  "created_at": 1791119398000
+ },
+ {
+  "address": "B8whnH5cSuvK9m9SR6UmkHyakD79ZirJwB79dJX1yUz8",
+  "name": "HIGGS-SOL",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 5
+  },
+  "tvl": 103121.22473131894,
+  "volume": {
+   "24h": 170085.74189890845
+  },
+  "fees": {
+   "24h": 7995.668416035401
+  },
+  "is_blacklisted": false,
+  "created_at": 1791117664000
+ },
+ {
+  "address": "5VggWUCjpQN4X6tVLxA3xGx6eZ3wQoMoxXumhaWyPXa5",
+  "name": "HIGGS-USDC",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 50,
+   "base_fee_pct": 0.5
+  },
+  "tvl": 2584.34446609759,
+  "volume": {
+   "24h": 38670.294477946256
+  },
+  "fees": {
+   "24h": 280.44100499425303
+  },
+  "is_blacklisted": false,
+  "created_at": 1791130967000
+ },
+ {
+  "address": "3cVZuXpkTq2KrAPxRWsbLtLbnBDiWwNevCFBF4AJ8r54",
+  "name": "HIGGS-SOL",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 2
+  },
+  "tvl": 17532.279724791246,
+  "volume": {
+   "24h": 19922.112790717823
+  },
+  "fees": {
+   "24h": 419.45153843214825
+  },
+  "is_blacklisted": false,
+  "created_at": 1791120891000
+ },
+ {
+  "address": "BE2Ri4ezc5DhfsAEuYQiPDxKii4ATcYBZumsW4MRmVoq",
+  "name": "HIGGS-USDC",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 400,
+   "base_fee_pct": 2
+  },
+  "tvl": 524.7361100484617,
+  "volume": {
+   "24h": 1739.8993527015532
+  },
+  "fees": {
+   "24h": 36.2338301748364
+  },
+  "is_blacklisted": false,
+  "created_at": 1791131599000
+ },
+ {
+  "address": "A7QPW9XdCeio57NGpZTMWaWrExTJP8NV821zY2nmEWfJ",
+  "name": "HIGGS-NVDAx",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+   "symbol": "NVDAx",
+   "market_cap": 76302087.31466098
+  },
+  "pool_config": {
+   "bin_step": 250,
+   "base_fee_pct": 1
+  },
+  "tvl": 416.9247298536323,
+  "volume": {
+   "24h": 1447.123260866598
+  },
+  "fees": {
+   "24h": 16.510277429362368
+  },
+  "is_blacklisted": false,
+  "created_at": 1791305221000
+ },
+ {
+  "address": "EYwrNQvaQ5B2euwRzXbMRkTPu3FQt7f9UthDDLJinFGd",
+  "name": "HIGGS-NVDAx",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+   "symbol": "NVDAx",
+   "market_cap": 76303845.70387554
+  },
+  "pool_config": {
+   "bin_step": 125,
+   "base_fee_pct": 1
+  },
+  "tvl": 0,
+  "volume": {
+   "24h": 806.2201428150923
+  },
+  "fees": {
+   "24h": 10.3222872477483
+  },
+  "is_blacklisted": false,
+  "created_at": 1791305067000
+ },
+ {
+  "address": "DqaJXaWuZxdJKRw7c9S17pR5MbMipKZbMYFaH2ipPWB8",
+  "name": "HIGGS-SOL",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 3
+  },
+  "tvl": 72.4887301166019,
+  "volume": {
+   "24h": 718.2850619490833
+  },
+  "fees": {
+   "24h": 20.883637506440948
+  },
+  "is_blacklisted": false,
+  "created_at": 1791119051000
+ },
+ {
+  "address": "GkMqAUCE2Za7R4R9j5Kbbsk6jrrQn7bL8m6kjNDHVGdz",
+  "name": "HIGGS-SOL",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68800293622.63354
+  },
+  "pool_config": {
+   "bin_step": 80,
+   "base_fee_pct": 0.8
+  },
+  "tvl": 0.000022532291922199,
+  "volume": {
+   "24h": 13.25750640864988
+  },
+  "fees": {
+   "24h": 0.1887753695184291
+  },
+  "is_blacklisted": false,
+  "created_at": 1791255745000
+ },
+ {
+  "address": "59aP9uTrkrV7ivYoWaWcPqBpDLw8LtezUEwJmM27gB5v",
+  "name": "HIGGS-USDC",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1410023.3771514485
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7727638611.744706
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 2
+  },
+  "tvl": 0.000058986356105507,
+  "volume": {
+   "24h": 0
+  },
+  "fees": {
+   "24h": 0
+  },
+  "is_blacklisted": false,
+  "created_at": 1791131080000
+ }
+]

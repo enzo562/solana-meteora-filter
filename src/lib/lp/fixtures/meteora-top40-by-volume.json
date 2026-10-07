@@ -1,0 +1,1082 @@
+[
+ {
+  "address": "5rCf1DM8LjKTw4YqhnoLcngyZYeNnQqztScTogYHAS6",
+  "name": "SOL-USDC",
+  "token_x": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 4,
+   "base_fee_pct": 0.04
+  },
+  "tvl": 4921738.9652078245,
+  "volume": {
+   "24h": 26736391.396875553
+  },
+  "fees": {
+   "24h": 10844.972076900409
+  },
+  "is_blacklisted": false,
+  "created_at": 1711766862000
+ },
+ {
+  "address": "HTvjzsfX3yU6BUodCjZ5vZkUrAxMDTrBs3CJaq43ashR",
+  "name": "SOL-USDC",
+  "token_x": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 1,
+   "base_fee_pct": 0.01
+  },
+  "tvl": 523607.329321292,
+  "volume": {
+   "24h": 17886374.15864704
+  },
+  "fees": {
+   "24h": 2345.574162186951
+  },
+  "is_blacklisted": false,
+  "created_at": 1708121407000
+ },
+ {
+  "address": "AECVu5BJndph7k61MmGWeidDh2PVeaHJysXzb2avXwBW",
+  "name": "AUTON-SOL",
+  "token_x": {
+   "address": "39ahtL8ynzE4amH26J29C93PA5172V3ft9UuUcqQS8fz",
+   "symbol": "AUTON",
+   "market_cap": 3174742.7987375525
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 80,
+   "base_fee_pct": 1
+  },
+  "tvl": 305543.9908999786,
+  "volume": {
+   "24h": 12943327.98506616
+  },
+  "fees": {
+   "24h": 234301.15918435305
+  },
+  "is_blacklisted": false,
+  "created_at": 1791319965000
+ },
+ {
+  "address": "6qz7THwQvcjF3HyDGLuKaLBUk6EyJKeZXZMWLAeiwfjd",
+  "name": "BP-USDC",
+  "token_x": {
+   "address": "BPxxfRCXkUVhig4HS1Lh7kZqV6SPJhzfEk4x6fVBjPCy",
+   "symbol": "BP",
+   "market_cap": 260617524.20098883
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 50,
+   "base_fee_pct": 0.25
+  },
+  "tvl": 5775842.906504204,
+  "volume": {
+   "24h": 11486941.732738696
+  },
+  "fees": {
+   "24h": 56707.62612352189
+  },
+  "is_blacklisted": false,
+  "created_at": 1774269573000
+ },
+ {
+  "address": "BGm1tav58oGcsQJehL9WXBFXF7D27vZsKefj4xJKD5Y",
+  "name": "SOL-USDC",
+  "token_x": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 10,
+   "base_fee_pct": 0.1
+  },
+  "tvl": 3763512.109754292,
+  "volume": {
+   "24h": 6424356.213558156
+  },
+  "fees": {
+   "24h": 6054.814567749851
+  },
+  "is_blacklisted": false,
+  "created_at": 1715468384000
+ },
+ {
+  "address": "AsSyvUnbfaZJPRrNh3kUuvZTeHKoMVWEoHz86f4Q5D9x",
+  "name": "MET-SOL",
+  "token_x": {
+   "address": "METvsvVRapdj9cFLzq4Tr43xK4tAjQfwX76z3n6mWQL",
+   "symbol": "MET",
+   "market_cap": 231542188.54957157
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 1488616.5838075294,
+  "volume": {
+   "24h": 5117997.248950409
+  },
+  "fees": {
+   "24h": 9610.280048494744
+  },
+  "is_blacklisted": false,
+  "created_at": 1761092668000
+ },
+ {
+  "address": "zxTpi4BtaWX3mgdAPoezkMD1hxx8CdeCfrqXMWvSCLX",
+  "name": "STONK-SOL",
+  "token_x": {
+   "address": "6GmAFSYs4gk3FDao5FzzySQpPZaWsa4rUJHacpMpUNgx",
+   "symbol": "STONK",
+   "market_cap": 140248187.9390881
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 1916244.433863201,
+  "volume": {
+   "24h": 5099056.771766457
+  },
+  "fees": {
+   "24h": 12283.255148493112
+  },
+  "is_blacklisted": false,
+  "created_at": 1786531832000
+ },
+ {
+  "address": "6oQ9wVex4mKZti2GsGCfD8FWTMMC9PLQkztRU5cd6MK8",
+  "name": "SOL-HYPE",
+  "token_x": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "token_y": {
+   "address": "98sMhvDwXj1RQi5c5Mndm3vPe9cBqPrbLaufMXFNMh5g",
+   "symbol": "HYPE",
+   "market_cap": 63032110.72960771
+  },
+  "pool_config": {
+   "bin_step": 4,
+   "base_fee_pct": 0.04
+  },
+  "tvl": 453421.8640545773,
+  "volume": {
+   "24h": 4434645.765166847
+  },
+  "fees": {
+   "24h": 1671.5902921464904
+  },
+  "is_blacklisted": false,
+  "created_at": 1761488304000
+ },
+ {
+  "address": "HDhWhQCBrSh9xNWmNtsTi86eWj3yCoEiaRodjgNydo1b",
+  "name": "cbBTC-SOL",
+  "token_x": {
+   "address": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+   "symbol": "cbBTC",
+   "market_cap": 244883081.04284817
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 2,
+   "base_fee_pct": 0.03
+  },
+  "tvl": 352563.1226891547,
+  "volume": {
+   "24h": 4429861.80544288
+  },
+  "fees": {
+   "24h": 1346.6143813345104
+  },
+  "is_blacklisted": false,
+  "created_at": 1769763554000
+ },
+ {
+  "address": "DdMA1cHcHEqYfttc1z1sJEY978CcU1pyjNuTWTNmdvzU",
+  "name": "PENGU-USDC",
+  "token_x": {
+   "address": "2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv",
+   "symbol": "PENGU",
+   "market_cap": 654014661.8875324
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 25,
+   "base_fee_pct": 0.25
+  },
+  "tvl": 3988853.130879329,
+  "volume": {
+   "24h": 4180519.509432327
+  },
+  "fees": {
+   "24h": 10018.443035576824
+  },
+  "is_blacklisted": false,
+  "created_at": 1764180636000
+ },
+ {
+  "address": "3C5YE97HADPDxZehYq9Cis8AXr9aNyrUsczKzE1nDbW9",
+  "name": "TRUMP-USDC",
+  "token_x": {
+   "address": "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+   "symbol": "TRUMP",
+   "market_cap": 519651772.7831787
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 10,
+   "base_fee_pct": 0.1
+  },
+  "tvl": 11619671.808177216,
+  "volume": {
+   "24h": 3643803.094308802
+  },
+  "fees": {
+   "24h": 5593.394951449476
+  },
+  "is_blacklisted": false,
+  "created_at": 1737183210000
+ },
+ {
+  "address": "4o6x1UfdU88TfxdcheWSdoGKzJrZtgzgih5FXNCzFXGp",
+  "name": "RACE-USDC",
+  "token_x": {
+   "address": "RACEyWiM2ztEZcJx2AHXU2eWjhxU57x3vXn92b39dLD",
+   "symbol": "RACE",
+   "market_cap": 270730.2171458114
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 8,
+   "base_fee_pct": 0.05
+  },
+  "tvl": 9949.100108950615,
+  "volume": {
+   "24h": 3385268.0514314407
+  },
+  "fees": {
+   "24h": 1547.3234043131906
+  },
+  "is_blacklisted": false,
+  "created_at": 1791317407000
+ },
+ {
+  "address": "FhdW3Y6Ea6hXKbkGkt5YSAVtDNd5qJ8USevMaPyEr45S",
+  "name": "wNEAR-USDC",
+  "token_x": {
+   "address": "3ZLekZYq2qkZiSpnSvabjit34tUkjSwD1JFuW9as9wBG",
+   "symbol": "wNEAR",
+   "market_cap": 12480001.290765394
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 1574417.8095352529,
+  "volume": {
+   "24h": 3030078.2634890787
+  },
+  "fees": {
+   "24h": 5612.319694117323
+  },
+  "is_blacklisted": false,
+  "created_at": 1765992779000
+ },
+ {
+  "address": "HRYEjwdo3bZ1TpXKWKcezqiwSV2Ywuh4LxMa2PzoCnG6",
+  "name": "USDC-SOL",
+  "token_x": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 2,
+   "base_fee_pct": 0.02
+  },
+  "tvl": 219090.6311726492,
+  "volume": {
+   "24h": 2883533.678358932
+  },
+  "fees": {
+   "24h": 622.6193032824503
+  },
+  "is_blacklisted": false,
+  "created_at": 1715552234000
+ },
+ {
+  "address": "5SHjDACvwtox5nY8kpWNYyaceWjtTG8C6L821D9Gtpjf",
+  "name": "JLP-USDC",
+  "token_x": {
+   "address": "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4",
+   "symbol": "JLP",
+   "market_cap": 921165844.282159
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 2,
+   "base_fee_pct": 0.03
+  },
+  "tvl": 248045.3677701033,
+  "volume": {
+   "24h": 2870164.7150287945
+  },
+  "fees": {
+   "24h": 943.3831690029826
+  },
+  "is_blacklisted": false,
+  "created_at": 1716128668000
+ },
+ {
+  "address": "2QE3DepmF4kye9Y9Yh6AXEYUarRsoUFGzdoJhAa9BBQ6",
+  "name": "USDe-USDG",
+  "token_x": {
+   "address": "DEkqHyPN7GMRJ5cArtQFAWefqbZb33Hyf6s5iCwjEonT",
+   "symbol": "USDe",
+   "market_cap": 516593880.1961001
+  },
+  "token_y": {
+   "address": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+   "symbol": "USDG",
+   "market_cap": 631825591.4744438
+  },
+  "pool_config": {
+   "bin_step": 1,
+   "base_fee_pct": 0.01
+  },
+  "tvl": 1533995.9089392642,
+  "volume": {
+   "24h": 2672923.6738923616
+  },
+  "fees": {
+   "24h": 443.9906364339646
+  },
+  "is_blacklisted": false,
+  "created_at": 1778139154000
+ },
+ {
+  "address": "FtiotJckV2ZG4S1YgJDJLiXKKDAnKWXgQxo7vxsjPwPe",
+  "name": "HOOKED-SOL",
+  "token_x": {
+   "address": "C1mBfBoDkwWfd6uTFZp62ARHLjeVp3bDpCDMfMZtPngE",
+   "symbol": "HOOKED",
+   "market_cap": 5442222.7662077835
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 50,
+   "base_fee_pct": 0.5
+  },
+  "tvl": 494074.0591550968,
+  "volume": {
+   "24h": 2545772.843824991
+  },
+  "fees": {
+   "24h": 16249.88115295854
+  },
+  "is_blacklisted": false,
+  "created_at": 1790631066000
+ },
+ {
+  "address": "EKj1S3BawtuC5meXY4qQi5Hu8rpBjWs3AwiZDMGRFq7k",
+  "name": "RARI-SOL",
+  "token_x": {
+   "address": "EFn88CiiFHhihqdr1Y11XBDxbbYarBf1ij92DsrigYwR",
+   "symbol": "RARI",
+   "market_cap": 1290082.428481436
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 80,
+   "base_fee_pct": 0.8
+  },
+  "tvl": 73681.55753751587,
+  "volume": {
+   "24h": 2421598.524871415
+  },
+  "fees": {
+   "24h": 39091.09520632748
+  },
+  "is_blacklisted": false,
+  "created_at": 1791317874000
+ },
+ {
+  "address": "2QxYG3kkqWvGoN9HNrVnJ9j8Fp6r4Mc1vHw9F9UgRw7D",
+  "name": "Agency-SOL",
+  "token_x": {
+   "address": "7VertkgF9KLhxxJXHX6uaWuoYZTP9LdGj2bWmVXVpump",
+   "symbol": "Agency",
+   "market_cap": 7287893.499449496
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 50,
+   "base_fee_pct": 0.5
+  },
+  "tvl": 279648.63268972404,
+  "volume": {
+   "24h": 2331789.383146366
+  },
+  "fees": {
+   "24h": 21088.898518231817
+  },
+  "is_blacklisted": false,
+  "created_at": 1791046376000
+ },
+ {
+  "address": "2QDGj5BWMSNyEfmyDFx7eEvWWm4KujUPJ38Xdkntvxtd",
+  "name": "PUMP-SOL",
+  "token_x": {
+   "address": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+   "symbol": "PUMP",
+   "market_cap": 2888880180.6260195
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 10,
+   "base_fee_pct": 0.1
+  },
+  "tvl": 527655.940661022,
+  "volume": {
+   "24h": 2327375.672743207
+  },
+  "fees": {
+   "24h": 2259.244560739187
+  },
+  "is_blacklisted": false,
+  "created_at": 1752344251000
+ },
+ {
+  "address": "8uwFMFCUDi61rgT1e6bUuDEfaUcN6roSoL7qHkp2NtHk",
+  "name": "SI-SOL",
+  "token_x": {
+   "address": "DEW9dSN6QpWyNthphCpMmAbZP1Q4cEKR9xQXAri98WDP",
+   "symbol": "SI",
+   "market_cap": 25923911.19757355
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 30,
+   "base_fee_pct": 0.3
+  },
+  "tvl": 362615.6211263732,
+  "volume": {
+   "24h": 2244149.806007099
+  },
+  "fees": {
+   "24h": 6718.627309863421
+  },
+  "is_blacklisted": false,
+  "created_at": 1790707853000
+ },
+ {
+  "address": "J8sGjRKPaFHFxfLR44T3yFWaaZmohcgzzBLz1zfqGNzH",
+  "name": "AUTON-SOL",
+  "token_x": {
+   "address": "39ahtL8ynzE4amH26J29C93PA5172V3ft9UuUcqQS8fz",
+   "symbol": "AUTON",
+   "market_cap": 3174742.7987375525
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 0.3
+  },
+  "tvl": 68914.70291732013,
+  "volume": {
+   "24h": 2140207.219679682
+  },
+  "fees": {
+   "24h": 31132.89957176167
+  },
+  "is_blacklisted": false,
+  "created_at": 1791320062000
+ },
+ {
+  "address": "7ubS3GccjhQY99AYNKXjNJqnXjaokEdfdV915xnCb96r",
+  "name": "cbBTC-USDC",
+  "token_x": {
+   "address": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+   "symbol": "cbBTC",
+   "market_cap": 244883081.04284817
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 4,
+   "base_fee_pct": 0.04
+  },
+  "tvl": 1323189.9077052474,
+  "volume": {
+   "24h": 2122038.2063041916
+  },
+  "fees": {
+   "24h": 854.5322852467923
+  },
+  "is_blacklisted": false,
+  "created_at": 1731019054000
+ },
+ {
+  "address": "DPAU7wDyMXDgNAfzQYMfyNqmTjzcoRsSPA2LeGH71hgi",
+  "name": "SKHY-USDC",
+  "token_x": {
+   "address": "SKHYhSjuRWHgikq8eRKbtBbpABgJSkd7ytQV14i9EQ3",
+   "symbol": "SKHY",
+   "market_cap": 2003551.3540233127
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 80,
+   "base_fee_pct": 0.1
+  },
+  "tvl": 2419305.6319448105,
+  "volume": {
+   "24h": 2074565.5110292935
+  },
+  "fees": {
+   "24h": 1908.1711408526976
+  },
+  "is_blacklisted": false,
+  "created_at": 1783732698000
+ },
+ {
+  "address": "6e7V9eegCHw997T72MxgwwJipZ6GJyZF8NvjkzT1rvpN",
+  "name": "ANSEM-SOL",
+  "token_x": {
+   "address": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
+   "symbol": "ANSEM",
+   "market_cap": 136326717.20216566
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 1095939.0984626652,
+  "volume": {
+   "24h": 2010597.8381378804
+  },
+  "fees": {
+   "24h": 4205.461955727893
+  },
+  "is_blacklisted": false,
+  "created_at": 1782628379000
+ },
+ {
+  "address": "54Vp27uLaw4wNLo5n7r4fcC6zLamoQc28xBARjss4EUJ",
+  "name": "ANTFUN-USDT",
+  "token_x": {
+   "address": "CWZ6BsdnjkDVTGkmL6bGbJXXig6ceef12KvyGQW14cMt",
+   "symbol": "ANTFUN",
+   "market_cap": 107390786.63951492
+  },
+  "token_y": {
+   "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+   "symbol": "USDT",
+   "market_cap": 3837218805.525517
+  },
+  "pool_config": {
+   "bin_step": 16,
+   "base_fee_pct": 0.03
+  },
+  "tvl": 14107317.37749267,
+  "volume": {
+   "24h": 1754460.1087952915
+  },
+  "fees": {
+   "24h": 635.3841512988558
+  },
+  "is_blacklisted": false,
+  "created_at": 1783657634000
+ },
+ {
+  "address": "ovtwEHG1eLuqagpSz8QXxfwrsUNKx58hejKjhWjxoeD",
+  "name": "PAID-SOL",
+  "token_x": {
+   "address": "98kfF7rmsg1QDUEoCqNE7g7M1FdrTt92TEp2CLzypump",
+   "symbol": "PAID",
+   "market_cap": 4935699.207292199
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 30,
+   "base_fee_pct": 0.3
+  },
+  "tvl": 193881.57509962615,
+  "volume": {
+   "24h": 1732187.1992645538
+  },
+  "fees": {
+   "24h": 6834.661215345941
+  },
+  "is_blacklisted": false,
+  "created_at": 1789700951000
+ },
+ {
+  "address": "13MEx6gjRadJNUdmToaGSzgeWHLH7FzScUQS9Mc5nYF5",
+  "name": "MU-USDC",
+  "token_x": {
+   "address": "MUxEsUKSMACyw5fZf68wxf5FLnZVhtU9CwH8uNNGay1",
+   "symbol": "MU",
+   "market_cap": 5735701.524331394
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726697048.167736
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 4391840.965832612,
+  "volume": {
+   "24h": 1702146.9172206635
+  },
+  "fees": {
+   "24h": 3080.800491557003
+  },
+  "is_blacklisted": false,
+  "created_at": 1782137569000
+ },
+ {
+  "address": "DQyGMAGx8nB6ykixotLNFC6eVVQjrMqz7AkRyinNkEm1",
+  "name": "HIGGS-SOL",
+  "token_x": {
+   "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+   "symbol": "HIGGS",
+   "market_cap": 1306298.088109017
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 0.3
+  },
+  "tvl": 150009.1382250623,
+  "volume": {
+   "24h": 1687574.322239941
+  },
+  "fees": {
+   "24h": 11191.91105466156
+  },
+  "is_blacklisted": false,
+  "created_at": 1791119398000
+ },
+ {
+  "address": "DLZhgwhLVCQWucBVSmY7QwKgcDCQaVvNwQ3DnAoatYzy",
+  "name": "CARDS-SOL",
+  "token_x": {
+   "address": "CARDSccUMFKoPRZxt5vt3ksUbxEFEcnZ3H2pd3dKxYjp",
+   "symbol": "CARDS",
+   "market_cap": 243139288.31819585
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 139764.54619691387,
+  "volume": {
+   "24h": 1592790.24038771
+  },
+  "fees": {
+   "24h": 3224.355084459345
+  },
+  "is_blacklisted": false,
+  "created_at": 1756806992000
+ },
+ {
+  "address": "9SMp4yLKGtW9TnLimfVPkDARsyNSfJw43WMke4r7KoZj",
+  "name": "PUMP-USDC",
+  "token_x": {
+   "address": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+   "symbol": "PUMP",
+   "market_cap": 2888880180.6260195
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 2244165.8062215736,
+  "volume": {
+   "24h": 1589097.4361390166
+  },
+  "fees": {
+   "24h": 2939.3345267569175
+  },
+  "is_blacklisted": false,
+  "created_at": 1752499135000
+ },
+ {
+  "address": "GeUkx21Vc6yg63YZ1BdXY95ZATm9LeBYCgSN1uJ3o18S",
+  "name": "MUSK-USDC",
+  "token_x": {
+   "address": "D4BPL1zvhhJbxUdgi2qVUtjx4jeQWyUr2PAUjKc9rN5x",
+   "symbol": "MUSK",
+   "market_cap": 315726710.4034613
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 0.01
+  },
+  "tvl": 153771.99071034085,
+  "volume": {
+   "24h": 1537521.116487373
+  },
+  "fees": {
+   "24h": 138.38247836681614
+  },
+  "is_blacklisted": false,
+  "created_at": 1766888693000
+ },
+ {
+  "address": "HbjYfcWZBjCBYTJpZkLGxqArVmZVu3mQcRudb6Wg1sVh",
+  "name": "PUMP-SOL",
+  "token_x": {
+   "address": "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn",
+   "symbol": "PUMP",
+   "market_cap": 2888880180.6260195
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 1992759.335296927,
+  "volume": {
+   "24h": 1513528.1664910954
+  },
+  "fees": {
+   "24h": 2780.16302979686
+  },
+  "is_blacklisted": false,
+  "created_at": 1752335554000
+ },
+ {
+  "address": "GgoFghiA6Ca7YNmG6dRxwKQWkZhRK8ND47EREz46arot",
+  "name": "XMR-USDC",
+  "token_x": {
+   "address": "WXMRyRZhsa19ety5erZhHg4N3xj3EVN92u94422teJp",
+   "symbol": "XMR",
+   "market_cap": 1256050.173305289
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 10,
+   "base_fee_pct": 0.1
+  },
+  "tvl": 136194.35537292075,
+  "volume": {
+   "24h": 1486610.112034907
+  },
+  "fees": {
+   "24h": 1357.141544241928
+  },
+  "is_blacklisted": false,
+  "created_at": 1789004245000
+ },
+ {
+  "address": "C8Gr6AUuq9hEdSYJzoEpNcdjpojPZwqG5MtQbeouNNwg",
+  "name": "JUP-SOL",
+  "token_x": {
+   "address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+   "symbol": "JUP",
+   "market_cap": 1060887852.264122
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68839066498.94766
+  },
+  "pool_config": {
+   "bin_step": 80,
+   "base_fee_pct": 0.15
+  },
+  "tvl": 2165236.3179286257,
+  "volume": {
+   "24h": 1451826.5872912093
+  },
+  "fees": {
+   "24h": 2106.153355821709
+  },
+  "is_blacklisted": false,
+  "created_at": 1706552230000
+ },
+ {
+  "address": "2N1KNuLSt167P6p9P8HYcisTvTTv4vYTM8QJBbtv1xYU",
+  "name": "CARDS-USDC",
+  "token_x": {
+   "address": "CARDSccUMFKoPRZxt5vt3ksUbxEFEcnZ3H2pd3dKxYjp",
+   "symbol": "CARDS",
+   "market_cap": 243139288.31819585
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 207916.06461368795,
+  "volume": {
+   "24h": 1439432.501357532
+  },
+  "fees": {
+   "24h": 3196.129369791829
+  },
+  "is_blacklisted": false,
+  "created_at": 1756865651000
+ },
+ {
+  "address": "5hbf9JP8k5zdrZp9pokPypFQoBse5mGCmW6nqodurGcd",
+  "name": "MET-USDC",
+  "token_x": {
+   "address": "METvsvVRapdj9cFLzq4Tr43xK4tAjQfwX76z3n6mWQL",
+   "symbol": "MET",
+   "market_cap": 231542188.54957157
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 519067.8444191257,
+  "volume": {
+   "24h": 1439287.0883631832
+  },
+  "fees": {
+   "24h": 2739.6447935996125
+  },
+  "is_blacklisted": false,
+  "created_at": 1761092704000
+ },
+ {
+  "address": "7k9rQcSSxza7y43T2fW33rZ2DgYsMPJzMKEm57P3Jiyt",
+  "name": "slopcannon-SOL",
+  "token_x": {
+   "address": "55Vr2VpSwxsDkB6uGGHAvRv86K6zax2Zb4TT8ivwDEzW",
+   "symbol": "slopcannon",
+   "market_cap": 303242.0485385345
+  },
+  "token_y": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "pool_config": {
+   "bin_step": 100,
+   "base_fee_pct": 0.3
+  },
+  "tvl": 4520.462860305549,
+  "volume": {
+   "24h": 1436382.7797427175
+  },
+  "fees": {
+   "24h": 23008.965300944463
+  },
+  "is_blacklisted": false,
+  "created_at": 1791310938000
+ },
+ {
+  "address": "ErW52xixSRZUymkjXL9APcZ5ygoQvvL1VEgsedj9TxHm",
+  "name": "AUTON-USDC",
+  "token_x": {
+   "address": "39ahtL8ynzE4amH26J29C93PA5172V3ft9UuUcqQS8fz",
+   "symbol": "AUTON",
+   "market_cap": 3174742.7987375525
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 80,
+   "base_fee_pct": 0.8
+  },
+  "tvl": 18979.088367041317,
+  "volume": {
+   "24h": 1408020.3877657377
+  },
+  "fees": {
+   "24h": 19238.714088022105
+  },
+  "is_blacklisted": false,
+  "created_at": 1791324194000
+ },
+ {
+  "address": "BVRbyLjjfSBcoyiYFuxbgKYnWuiFaF9CSXEa5vdSZ9Hh",
+  "name": "SOL-USDC",
+  "token_x": {
+   "address": "So11111111111111111111111111111111111111112",
+   "symbol": "SOL",
+   "market_cap": 68843991242.81287
+  },
+  "token_y": {
+   "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "symbol": "USDC",
+   "market_cap": 7726483809.284029
+  },
+  "pool_config": {
+   "bin_step": 20,
+   "base_fee_pct": 0.2
+  },
+  "tvl": 2115150.0110563897,
+  "volume": {
+   "24h": 1363416.6584527234
+  },
+  "fees": {
+   "24h": 2484.13837234411
+  },
+  "is_blacklisted": false,
+  "created_at": 1711808749000
+ }
+]
