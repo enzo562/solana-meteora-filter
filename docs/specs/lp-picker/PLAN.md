@@ -4,7 +4,7 @@
 > une **technique** choisie dans un sélecteur. Chaque technique produit **sa propre liste**. La version 1
 > ne contient qu'une technique : les **règles de Vladimir** (choix du pool selon la market cap).
 >
-> Statut : **spécifié, non implémenté**. Version 1 — 2026-10-06.
+> Statut : **implémenté** (2026-10-07, branche `feat/lp-picker`). Version 2 — 2026-10-07 (cf. Historique).
 > Cibles : `src/pages/LpPickerPage.tsx`, `src/lib/lp/` (logique pure), `src/App.tsx` ; en option
 > `src/pages/TokenScannerPage.tsx` (lecture de `?ca=`).
 
@@ -13,6 +13,7 @@
 | Version | Date | Changement | Pourquoi |
 |---|---|---|---|
 | v1 | 2026-10-06 | Plan initial, issu d'une séance de cadrage avec Enzo | Outiller l'étape « choisir le pool » de son workflow LP |
+| v2 | 2026-10-07 | **Implémenté** (Lots 0 à 4, scanner `?ca=` compris). Écarts : registre des techniques dans `registry.ts` (et non `techniques.ts`) pour éviter un import circulaire ; `formatCompact` / `formatPct` dans `format.ts` ; lignes dépliées rendues en sous-tableau ; en cas d'échec du rafraîchissement, la liste garde ses dernières données sous le bandeau d'erreur ; `MAJOR_MINTS` relevé sur les 500 premiers pools (Q1 toujours à valider) | Constats d'implémentation ; l'aperçu du 2026-10-07 montre que la liste est dominée par les grosses capitalisations — Enzo a choisi d'implémenter tel quel et d'ajuster ensuite |
 
 ---
 
@@ -244,4 +245,5 @@ aurait choisi à la main en appliquant la règle de Vladimir.
 | # | Question | Hypothèse en attendant |
 |---|---|---|
 | Q1 | La liste `MAJOR_MINTS` proposée au Lot 0 convient-elle ? | À valider par Enzo au Lot 0 |
-| Q2 | Faut-il garder le Lot 3 optionnel (scanner via `?ca=`) ? | Oui si le temps le permet (Could) |
+| Q2 | Faut-il garder le Lot 3 optionnel (scanner via `?ca=`) ? | ✅ Fait (2026-10-07) |
+| Q3 | La liste est dominée par les grosses capitalisations (tri par volume) : ajouter un plafond de market cap ou un filtre par tranche (< 1M, 1–10M, tout) ? | Non tranché — Enzo ajustera à l'usage |
