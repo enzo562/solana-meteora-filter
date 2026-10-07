@@ -7,6 +7,8 @@ import { formatCompact, formatPct } from "../lib/lp/format";
 import { DEFAULT_TECHNIQUE_ID, TECHNIQUES, techniqueById } from "../lib/lp/registry";
 import type { PoolVerdict, Technique } from "../lib/lp/techniques";
 import { bestPool } from "../lib/lp/vladimir";
+import { createBrowserMinuteVolumeQueue } from "../lib/lp/minuteVolume";
+import type { MinuteVolumeQueue, MinuteVolumeState } from "../lib/lp/minuteVolume";
 
 // Choix du pool Meteora DLMM où fournir de la liquidité, selon une technique choisie dans le
 // sélecteur (une technique = une liste). Données : API Meteora, appelée directement depuis la page.
@@ -37,6 +39,34 @@ function VerdictCell({ verdict, note }: { verdict: PoolVerdict; note?: string })
             {VERDICT_ICON[verdict.level]} {verdict.level === "conforme" ? "conforme" : verdict.reasons.join(" ; ")}
             {note && <span className="hint-inline"> · {note}</span>}
         </td>
+    );
+}
+
+// Volume 1 min (et 5 min) d'un pool, servi par la file GeckoTerminal (PLAN.md §11).
+function MinuteVolumeCells({ state, withFiveMinutes }: { state: MinuteVolumeState | undefined; withFiveMinutes: boolean }) {
+    if (!state || state.status === "pending") {
+        return (
+            <>
+                <td className="num hint-inline" title="En file d'attente GeckoTerminal">…</td>
+                {withFiveMinutes && <td className="num hint-inline">…</td>}
+            </>
+        );
+    }
+    if (state.status === "unavailable") {
+        return (
+            <>
+                <td className="num" title={state.reason}>—</td>
+                {withFiveMinutes && <td className="num" title={state.reason}>—</td>}
+            </>
+        );
+    }
+    const minute = new Date(state.value.candleTs * 1000).toISOString().slice(11, 16);
+    const title = `Minute ${minute} UTC · 5 min : $${formatCompact(state.value.last5Minutes)}`;
+    return (
+        <>
+            <td className="num" title={title}>${formatCompact(state.value.lastMinute)}</td>
+            {withFiveMinutes && <td className="num" title={title}>${formatCompact(state.value.last5Minutes)}</td>}
+        </>
     );
 }
 
@@ -73,7 +103,13 @@ function SecurityLinks({ mint }: { mint: string }) {
 }
 
 // Détail d'une ligne dépliée : tous les pools SOL du token, dans un sous-tableau sur toute la largeur.
-function PoolDetails({ pools, token, technique, colSpan }: { pools: MeteoraPool[]; token: PoolToken; technique: Technique; colSpan: number }) {
+function PoolDetails({ pools, token, technique, colSpan, volumes }: {
+    pools: MeteoraPool[];
+    token: PoolToken;
+    technique: Technique;
+    colSpan: number;
+    volumes: MinuteVolumeQueue;
+}) {
     return (
         <tr>
             <td colSpan={colSpan}>
@@ -85,6 +121,8 @@ function PoolDetails({ pools, token, technique, colSpan }: { pools: MeteoraPool[
                         <th className="num">Frais</th>
                         <th className="num">TVL</th>
                         <th className="num">Vol 24h</th>
+                        <th className="num">1 min</th>
+                        <th className="num">5 min</th>
                         <th>Verdict</th>
                         <th>Liens</th>
                     </tr>
@@ -97,6 +135,7 @@ function PoolDetails({ pools, token, technique, colSpan }: { pools: MeteoraPool[
                             <td className="num">{formatPct(pool.pool_config.base_fee_pct)}</td>
                             <td className="num">${formatCompact(pool.tvl)}</td>
                             <td className="num">${formatCompact(pool.volume["24h"])}</td>
+                            <MinuteVolumeCells state={volumes.get(pool.address)} withFiveMinutes />
                             <VerdictCell verdict={technique.evaluate(pool, token)} />
                             <td>
                                 <PoolLinks pool={pool} />
@@ -113,6 +152,12 @@ function PoolDetails({ pools, token, technique, colSpan }: { pools: MeteoraPool[
 export default function LpPickerPage() {
     const [techniqueId, setTechniqueId] = useState(DEFAULT_TECHNIQUE_ID);
     const technique = techniqueById(techniqueId);
+
+    // Une seule file GeckoTerminal pour toute la page (RG-09). Pas de dispose au démontage : le mode
+    // strict de React démonte/remonte les effets en dev ; on se contente de se désabonner.
+    const [volumes] = useState(createBrowserMinuteVolumeQueue);
+    const [, setVolumesVersion] = useState(0);
+    useEffect(() => volumes.subscribe(() => setVolumesVersion((v) => v + 1)), [volumes]);
 
     // --- Recherche par CA ---
     const [ca, setCa] = useState("");
@@ -139,6 +184,10 @@ export default function LpPickerPage() {
             setCaState({ status: "error", message: errorMessage(err) });
         }
     }
+
+    useEffect(() => {
+        if (caState.status === "ok") caState.pools.forEach(({ pool }) => volumes.request(pool.address, 0));
+    }, [caState, volumes]);
 
     // --- Liste automatique ---
     const [groups, setGroups] = useState<TokenGroup[] | null>(null);
@@ -191,6 +240,22 @@ export default function LpPickerPage() {
         };
     });
     const visible = showAll ? rows : rows.filter((r) => r.best !== null);
+
+    // Meilleurs pools visibles, dans l'ordre d'affichage (priorité 2+), redemandés à chaque
+    // rafraîchissement de la liste (le cache de 60 s évite les doublons).
+    const bestPoolsKey = visible.map((r) => r.best?.pool.address ?? "").join(",");
+    useEffect(() => {
+        bestPoolsKey
+            .split(",")
+            .filter(Boolean)
+            .forEach((pool, index) => volumes.request(pool, 2 + index / 1000));
+    }, [bestPoolsKey, updatedAt, volumes]);
+
+    useEffect(() => {
+        for (const group of groups ?? []) {
+            if (expanded.has(group.token.address)) group.pools.forEach((pool) => volumes.request(pool.address, 1));
+        }
+    }, [expanded, groups, volumes]);
 
     return (
         <div className="page">
@@ -246,6 +311,8 @@ export default function LpPickerPage() {
                                 <th className="num">Frais</th>
                                 <th className="num">TVL</th>
                                 <th className="num">Vol 24h</th>
+                                <th className="num">1 min</th>
+                                <th className="num">5 min</th>
                                 <th>Verdict</th>
                                 <th>Liens</th>
                             </tr>
@@ -258,6 +325,7 @@ export default function LpPickerPage() {
                                     <td className="num">{formatPct(pool.pool_config.base_fee_pct)}</td>
                                     <td className="num">${formatCompact(pool.tvl)}</td>
                                     <td className="num">${formatCompact(pool.volume["24h"])}</td>
+                                    <MinuteVolumeCells state={volumes.get(pool.address)} withFiveMinutes />
                                     <VerdictCell verdict={technique.evaluate(pool, token)} note={solPair ? undefined : "paire non-SOL"} />
                                     <td>
                                         <PoolLinks pool={pool} />
@@ -294,6 +362,7 @@ export default function LpPickerPage() {
                             <th>Token</th>
                             <th className="num">Mcap</th>
                             <th className="num">Vol 24h</th>
+                            <th className="num" title="Volume de la dernière minute clôturée du meilleur pool (GeckoTerminal)">Vol 1 min</th>
                             <th className="num">✅ / 🟡</th>
                             <th>Meilleur pool</th>
                             <th>Sécurité</th>
@@ -313,6 +382,11 @@ export default function LpPickerPage() {
                                     <td className="num" title="Somme des volumes 24 h de ses pools SOL parmi les pools chargés">
                                         ${formatCompact(group.volume24h)}
                                     </td>
+                                    {best ? (
+                                        <MinuteVolumeCells state={volumes.get(best.pool.address)} withFiveMinutes={false} />
+                                    ) : (
+                                        <td className="num">—</td>
+                                    )}
                                     <td className="num">
                                         {conformes} / {proches}
                                     </td>
@@ -331,13 +405,13 @@ export default function LpPickerPage() {
                                     </td>
                                 </tr>
                                 {expanded.has(group.token.address) && (
-                                    <PoolDetails pools={group.pools} token={group.token} technique={technique} colSpan={6} />
+                                    <PoolDetails pools={group.pools} token={group.token} technique={technique} colSpan={7} volumes={volumes} />
                                 )}
                             </Fragment>
                         ))}
                         {groups && visible.length === 0 && (
                             <tr>
-                                <td className="table-empty" colSpan={6}>
+                                <td className="table-empty" colSpan={7}>
                                     Aucun token avec un pool retenu par cette technique pour le moment.
                                 </td>
                             </tr>

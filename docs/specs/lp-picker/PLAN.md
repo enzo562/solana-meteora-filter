@@ -4,7 +4,7 @@
 > une **technique** choisie dans un sélecteur. Chaque technique produit **sa propre liste**. La version 1
 > ne contient qu'une technique : les **règles de Vladimir** (choix du pool selon la market cap).
 >
-> Statut : **implémenté** (2026-10-07, branche `feat/lp-picker`). Version 2 — 2026-10-07 (cf. Historique).
+> Statut : **implémenté** (v2, 2026-10-07, branche `feat/lp-picker`) ; **v3 (volume 1 min) en cours**. Version 3 — 2026-10-07 (cf. Historique).
 > Cibles : `src/pages/LpPickerPage.tsx`, `src/lib/lp/` (logique pure), `src/App.tsx` ; en option
 > `src/pages/TokenScannerPage.tsx` (lecture de `?ca=`).
 
@@ -14,6 +14,7 @@
 |---|---|---|---|
 | v1 | 2026-10-06 | Plan initial, issu d'une séance de cadrage avec Enzo | Outiller l'étape « choisir le pool » de son workflow LP |
 | v2 | 2026-10-07 | **Implémenté** (Lots 0 à 4, scanner `?ca=` compris). Écarts : registre des techniques dans `registry.ts` (et non `techniques.ts`) pour éviter un import circulaire ; `formatCompact` / `formatPct` dans `format.ts` ; lignes dépliées rendues en sous-tableau ; en cas d'échec du rafraîchissement, la liste garde ses dernières données sous le bandeau d'erreur ; `MAJOR_MINTS` relevé sur les 500 premiers pools (Q1 toujours à valider) | Constats d'implémentation ; l'aperçu du 2026-10-07 montre que la liste est dominée par les grosses capitalisations — Enzo a choisi d'implémenter tel quel et d'ajuster ensuite |
+| v3 | 2026-10-07 | Ajout du **volume 1 min** (et 5 min) par pool, via les bougies minute de GeckoTerminal, dans la recherche par CA, les lignes dépliées **et la liste** (meilleur pool), avec une file d'attente commune limitée à 1 appel / 2,5 s (§11) | Demande d'Enzo. Meteora ne descend pas sous 30 min, DexScreener ne connaît pas tous les pools DLMM ; GeckoTerminal est la seule source minute, mais à un appel par pool et avec une limite partagée avec `indicator-alerter` |
 
 ---
 
@@ -247,3 +248,43 @@ aurait choisi à la main en appliquant la règle de Vladimir.
 | Q1 | La liste `MAJOR_MINTS` proposée au Lot 0 convient-elle ? | À valider par Enzo au Lot 0 |
 | Q2 | Faut-il garder le Lot 3 optionnel (scanner via `?ca=`) ? | ✅ Fait (2026-10-07) |
 | Q3 | La liste est dominée par les grosses capitalisations (tri par volume) : ajouter un plafond de market cap ou un filtre par tranche (< 1M, 1–10M, tout) ? | Non tranché — Enzo ajustera à l'usage |
+
+---
+
+## 11. Volume 1 min (v3)
+
+**Source** : `GET https://api.geckoterminal.com/api/v2/networks/solana/pools/<pool>/ohlcv/minute?aggregate=1&limit=6&currency=usd`
+(sans clé ; horodatage = **ouverture** de la bougie). Constaté le 2026-10-07 : Meteora ne fournit que 30m/1h/2h/4h/12h/24h,
+et DexScreener ne connaît pas certains pools DLMM (ex. HIGGS-SOL `DQyGMA…`).
+
+**Valeurs affichées** (`src/lib/lp/minuteVolume.ts`) :
+- **Vol 1 min** = volume de la **dernière minute clôturée** ; la minute en cours est écartée (même règle anti-repaint
+  que `indicator-alerter`) ;
+- **Vol 5 min** = somme des 5 dernières minutes clôturées.
+
+**File d'attente commune** (RG-09 ci-dessous) :
+- **1 appel toutes les 2,5 s** au plus (~24/min), sous la limite gratuite (~30/min), car `indicator-alerter` appelle
+  aussi GeckoTerminal depuis la même machine ;
+- **priorité** : recherche par CA, puis lignes dépliées, puis meilleur pool de chaque token visible de la liste, dans
+  l'ordre d'affichage ;
+- **cache 60 s par pool** et dédoublonnage : le rafraîchissement de la liste réutilise les valeurs récentes ;
+- **HTTP 429** : pause de 30 s, le pool est remis en file ; autre erreur HTTP : « — » avec info-bulle, gardé 60 s.
+- **Erreur réseau = limite probable** (constaté le 2026-10-07) : le 429 de GeckoTerminal arrive **sans en-tête CORS**,
+  donc dans le navigateur `fetch` lève une simple erreur réseau. Elle déclenche la même pause de 30 s ; sans ça, la
+  file continuait d'appeler toutes les 2,5 s et entretenait le blocage.
+
+**Affichage** : liste → colonne « Vol 1 min » (meilleur pool, « … » en attente, 5 min en info-bulle) ; recherche par CA
+et lignes dépliées → colonnes « 1 min » et « 5 min ». La liste complète (~40 tokens) se remplit en ~1 min 30, du haut
+vers le bas.
+
+| # | Règle ajoutée |
+|---|---|
+| RG-09 | Tous les appels GeckoTerminal de l'onglet passent par **une seule file** ; jamais d'appel direct depuis la page. |
+
+| Lot | Contenu | Vérification |
+|---|---|---|
+| 5 | `minuteVolume.ts` (lecture des bougies, file, cache, pause 429) + tests ; intégration dans la page | `npm test` (horloge et `fetch` simulés) ; Chrome : colonne qui se remplit, CA et ligne dépliée, 429 simulé → « — » et reprise |
+
+**État du Lot 5 (2026-10-07)** : code et tests faits (48/48). Vérifié dans Chrome : colonnes présentes, file à
+2,5 s, pause de 30 s sur échec. **Pas encore vérifié en réel : l'affichage d'une valeur**, car GeckoTerminal renvoyait
+du 429 en continu ce soir-là (même via `curl`, file en pause). À refaire quand la limite est levée.
