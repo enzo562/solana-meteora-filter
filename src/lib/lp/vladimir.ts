@@ -3,6 +3,7 @@
 // marketcap : base fees de 2 % minimum, bin step plus larges genre 125–200 ; au-dessus de 1M :
 // 1 %, 0,8 %, etc., parfois bin step 50 ou même la fameuse 20/0,2 ».
 
+import { formatPct } from "./format.ts";
 import type { MeteoraPool } from "./meteoraPools.ts";
 import type { PoolVerdict, Technique, VerdictLevel } from "./techniques.ts";
 
@@ -35,16 +36,12 @@ function fit(value: number, min: number, max: number): Fit {
     return "out";
 }
 
-function pct(value: number): string {
-    return `${String(value).replace(".", ",")} %`;
-}
-
 function feeReason(fee: number, rule: Rule, f: Fit): string {
     const where = f === "near" ? "proche" : "hors";
     if (rule.maxFee === Infinity) {
-        return `frais ${pct(fee)} ${where === "proche" ? "proche du" : "sous le"} minimum ${pct(rule.minFee)} (règle ${rule.name})`;
+        return `frais ${formatPct(fee)} ${where === "proche" ? "proche du" : "sous le"} minimum ${formatPct(rule.minFee)} (règle ${rule.name})`;
     }
-    return `frais ${pct(fee)} ${where} de ${String(rule.minFee).replace(".", ",")}–${pct(rule.maxFee)} (règle ${rule.name})`;
+    return `frais ${formatPct(fee)} ${where} de ${String(rule.minFee).replace(".", ",")}–${formatPct(rule.maxFee)} (règle ${rule.name})`;
 }
 
 function binReason(binStep: number, rule: Rule, f: Fit): string {
