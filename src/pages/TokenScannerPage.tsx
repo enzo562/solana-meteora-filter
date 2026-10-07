@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { readApiFailure, formatApiFailure } from "../lib/apiError";
-import { isValidSolanaAddress } from "../lib/solanaAddress";
+import { useLocation } from "react-router-dom";
+import { caFromSearch, isValidSolanaAddress } from "../lib/solanaAddress";
 
 // Scanner de risque token — un CA à la fois, déclenchement manuel (pas de polling).
 // Sources gratuites sans clé : RugCheck (risque global, insiders, mint/freeze authority,
@@ -428,6 +429,18 @@ export default function TokenScannerPage() {
         },
         [caInput, runAnalysis],
     );
+
+    // Lien « Scanner » de l'onglet Choix LP : /scanner?ca=<CA> lance directement l'analyse.
+    const location = useLocation();
+    useEffect(() => {
+        const ca = caFromSearch(location.search);
+        if (!ca) return;
+        const timer = setTimeout(() => {
+            setCaInput(ca);
+            runAnalysis(ca);
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [location.search, runAnalysis]);
 
     const loading = rugcheck.status === "loading" || dexPaid.status === "loading";
 

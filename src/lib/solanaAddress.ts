@@ -35,3 +35,10 @@ function base58ByteLength(ca: string): number | null {
 export function isValidSolanaAddress(ca: string): boolean {
     return SOLANA_ADDRESS_RE.test(ca) && base58ByteLength(ca) === 32;
 }
+
+// CA passé dans l'URL (`?ca=…`, lien « Scanner » de l'onglet Choix LP) : renvoyé seulement s'il est
+// valide, pour ne jamais lancer d'analyse sur une valeur arbitraire.
+export function caFromSearch(search: string): string | null {
+    const ca = new URLSearchParams(search).get("ca")?.trim() ?? "";
+    return isValidSolanaAddress(ca) ? ca : null;
+}

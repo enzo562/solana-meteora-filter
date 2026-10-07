@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isValidSolanaAddress } from "./solanaAddress.ts";
+import { caFromSearch, isValidSolanaAddress } from "./solanaAddress.ts";
+
+test("caFromSearch lit un CA valide dans ?ca=, sinon null", () => {
+    assert.equal(caFromSearch("?ca=NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg"), "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg");
+    assert.equal(caFromSearch("?ca=%20NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg%20"), "NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg");
+    assert.equal(caFromSearch("?ca=pasunCA"), null);
+    assert.equal(caFromSearch(""), null);
+});
 
 test("isValidSolanaAddress accepte de vrais mints", () => {
     assert.equal(isValidSolanaAddress("NKEda5nHhNGgjrE9nDdMvaEmkmJ96qqxzBVZEcKmjSg"), true);
