@@ -258,8 +258,8 @@ aurait choisi à la main en appliquant la règle de Vladimir.
 et DexScreener ne connaît pas certains pools DLMM (ex. HIGGS-SOL `DQyGMA…`).
 
 **Valeurs affichées** (`src/lib/lp/minuteVolume.ts`) :
-- **Vol 1 min** = volume de la **dernière minute clôturée** ; la minute en cours est écartée (même règle anti-repaint
-  que `indicator-alerter`) ;
+- **Vol 1 min** = volume de la **dernière minute clôturée** ; la minute en cours est écartée (son volume est
+  partiel) ;
 - **Vol 5 min** = somme des 5 dernières minutes clôturées.
 
 **File d'attente commune** (RG-09 ci-dessous) :

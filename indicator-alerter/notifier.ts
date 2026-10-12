@@ -19,6 +19,13 @@ function formatCandleTime(candleTs: number): string {
     return new Date(candleTs * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
+// Une alerte sur la bougie en cours peut s'invalider avant la clôture (cf. planCycle) : le
+// message le dit explicitement.
+function formatCandle(alert: IndicatorAlert): string {
+    const time = formatCandleTime(alert.candleTs);
+    return alert.inProgress ? `${time} (en cours, non clôturée)` : time;
+}
+
 // Ces alertes sont des signaux de SORTIE (prise de profits), jamais d'entrée — cf. signalDetector.ts.
 const EXIT_REASON = "Prise de profits — surchauffe haussière";
 
@@ -53,7 +60,7 @@ export function discordNotifier(webhookUrl: string): Notifier {
                                 value: `${alert.signals.triggeredCount}/3`,
                                 inline: true,
                             },
-                            { name: "Bougie 15m", value: formatCandleTime(alert.candleTs), inline: true },
+                            { name: "Bougie 15m", value: formatCandle(alert), inline: true },
                             { name: "Déclencheurs", value: labels.map((l) => `• ${l}`).join("\n"), inline: false },
                             { name: "Mint", value: alert.mint, inline: false },
                             {
@@ -93,7 +100,7 @@ export function telegramNotifier(botToken: string, chatId: string): Notifier {
                 ...labels.map((l) => `✅ ${escapeHtml(l)}`),
                 "",
                 `Prix      : ${formatPrice(alert.price)}`,
-                `Bougie 15m : ${formatCandleTime(alert.candleTs)}`,
+                `Bougie 15m : ${formatCandle(alert)}`,
                 "",
                 `Mint : <code>${alert.mint}</code>`,
                 `<a href="${dexscreenerUrl(alert.pool)}">DexScreener</a> · <a href="${geckoterminalUrl(alert.pool)}">GeckoTerminal</a>`,

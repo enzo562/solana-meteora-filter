@@ -22,7 +22,7 @@ export type MinuteVolumeState =
     | { status: "unavailable"; reason: string; fetchedAt: number };
 
 // Bougies GeckoTerminal [ts ouverture (s), o, h, l, c, volume]. La minute encore ouverte est écartée
-// (même règle anti-repaint qu'indicator-alerter).
+// (son volume est partiel ; indicator-alerter, lui, évalue la bougie en cours depuis le 2026-10-09).
 export function parseMinuteVolume(ohlcvList: number[][], nowMs: number): MinuteVolume | null {
     const closed = ohlcvList
         .filter((c) => c[0] * 1000 + CANDLE_MS <= nowMs)

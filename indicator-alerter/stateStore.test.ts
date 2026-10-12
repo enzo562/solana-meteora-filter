@@ -4,7 +4,7 @@ import { purgeRemovedTokens } from "./stateStore.ts";
 import type { StateMap, TokenState } from "./types.ts";
 
 function tokenState(mint: string): TokenState {
-    return { mint, pool: `pool-${mint}`, lastProcessedCandleTs: 1_791_034_200, updatedAt: 1 };
+    return { mint, pool: `pool-${mint}`, lastProcessedCandleTs: 1_791_034_200, lastAlertedCandleTs: null, updatedAt: 1 };
 }
 
 test("purgeRemovedTokens supprime l'état des tokens absents de la watchlist", () => {

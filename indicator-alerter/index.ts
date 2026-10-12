@@ -1,9 +1,9 @@
-import { loadConfig, type IndicatorAlerterConfig } from "./config.ts";
+import { exceedsGeckoBudget, loadConfig, GECKO_CALLS_PER_MIN_BUDGET, type IndicatorAlerterConfig } from "./config.ts";
 import { readWatchlist } from "./watchlist.ts";
 import { readState, writeState, nextTokenState, purgeRemovedTokens } from "./stateStore.ts";
 import { resolveMostLiquidPool } from "./poolResolver.ts";
-import { fetchClosedCandles } from "./ohlcvClient.ts";
-import { evaluateCandleRange } from "./signalDetector.ts";
+import { fetchCandles } from "./ohlcvClient.ts";
+import { planCycle } from "./signalDetector.ts";
 import { discordNotifier, telegramNotifier } from "./notifier.ts";
 import { logger } from "./logger.ts";
 import type { IndicatorAlert, Notifier, TokenState, WatchlistEntry } from "./types.ts";
@@ -65,63 +65,96 @@ async function processEntry(
         logger.info("indicator-alerter.pool.resolved", { mint: entry.mint, pool });
     }
 
-    let candles;
+    let candleSet;
     try {
-        candles = await fetchClosedCandles(pool, config.candleLimit);
+        candleSet = await fetchCandles(pool, config.candleLimit);
     } catch (err) {
-        // La liquidité a pu migrer vers un nouveau pool (l'ancien devient 404/vide) : on oublie
-        // le pool mis en cache pour forcer une re-résolution au prochain cycle.
+        // Panne passagère (429 en tête) : on garde le pool, une re-résolution coûterait un appel
+        // GeckoTerminal de plus en plein rate limit.
         logger.error("indicator-alerter.candles.fetch_failed", { mint: entry.mint, pool, error: String(err) });
+        return nextTokenState(existing, entry.mint, { pool });
+    }
+    if (candleSet === null) {
+        // 404 : la liquidité a pu migrer vers un nouveau pool. On oublie le pool mis en cache pour
+        // forcer une re-résolution au prochain cycle.
+        logger.warn("indicator-alerter.candles.pool_gone", { mint: entry.mint, pool });
         return nextTokenState(existing, entry.mint, { pool: null });
     }
-    if (candles.length < MIN_CANDLES_REQUIRED) {
+    if (candleSet.closed.length < MIN_CANDLES_REQUIRED) {
         logger.info("indicator-alerter.candles.insufficient", {
             mint: entry.mint,
             pool,
-            available: candles.length,
+            available: candleSet.closed.length,
             required: MIN_CANDLES_REQUIRED,
         });
         return nextTokenState(existing, entry.mint, { pool });
     }
 
-    const lastCandle = candles[candles.length - 1];
-    const lastProcessedCandleTs = existing?.lastProcessedCandleTs ?? null;
+    // Bougie en cours incluse, une seule alerte par bougie, amorçage silencieux, rattrapage :
+    // toutes les règles sont dans planCycle (signalDetector.ts).
+    const plan = planCycle(candleSet, {
+        lastProcessedCandleTs: existing?.lastProcessedCandleTs ?? null,
+        lastAlertedCandleTs: existing?.lastAlertedCandleTs ?? null,
+    });
+    const nextState = nextTokenState(existing, entry.mint, {
+        pool,
+        lastProcessedCandleTs: plan.lastProcessedCandleTs,
+        lastAlertedCandleTs: plan.lastAlertedCandleTs,
+    });
 
-    // Amorçage silencieux : premier passage sur ce token, on enregistre l'état sans alerter,
-    // sinon on alerterait immédiatement sur une condition déjà en place avant l'ajout à la
-    // watchlist (même règle anti-« big bang » que alerter/diffDetector.ts).
-    if (lastProcessedCandleTs === null) {
-        logger.info("indicator-alerter.bootstrap", { mint: entry.mint, pool, lastCandleTs: lastCandle.ts });
-        return nextTokenState(existing, entry.mint, { pool, lastProcessedCandleTs: lastCandle.ts });
+    if (plan.bootstrap) {
+        logger.info("indicator-alerter.bootstrap", {
+            mint: entry.mint,
+            pool,
+            lastCandleTs: plan.lastProcessedCandleTs,
+            preExistingSignalTs: plan.lastAlertedCandleTs,
+        });
+        return nextState;
     }
 
-    const evaluations = evaluateCandleRange(candles, lastProcessedCandleTs);
-    if (evaluations.length === 0) {
-        return nextTokenState(existing, entry.mint, { pool });
-    }
-
-    // Rattrapage : si plusieurs bougies se sont fermées depuis le dernier cycle, on n'alerte
-    // qu'une fois, sur la plus récente bougie qualifiante (évite un backlog d'alertes en rafale).
-    const qualifying = evaluations.filter((e) => e.evaluation.qualifies);
-    if (qualifying.length > 0) {
-        const latest = qualifying[qualifying.length - 1];
+    if (plan.alert) {
+        const { candle, evaluation, inProgress } = plan.alert;
         const alert: IndicatorAlert = {
             mint: entry.mint,
             label: displayLabel(entry),
             pool,
-            price: latest.candle.close,
-            candleTs: latest.candle.ts,
-            signals: latest.evaluation,
+            price: candle.close,
+            candleTs: candle.ts,
+            inProgress,
+            signals: evaluation,
         };
         logger.info("indicator-alerter.signal.qualified", {
             mint: entry.mint,
-            candleTs: latest.candle.ts,
-            triggeredCount: latest.evaluation.triggeredCount,
+            candleTs: candle.ts,
+            inProgress,
+            triggeredCount: evaluation.triggeredCount,
         });
         await notifyAll(notifiers, alert);
     }
 
-    return nextTokenState(existing, entry.mint, { pool, lastProcessedCandleTs: lastCandle.ts });
+    return nextState;
+}
+
+// Ne logue qu'au franchissement du seuil (dans un sens ou dans l'autre), pas à chaque cycle : la
+// watchlist est relue à chaque cycle, donc la charge peut changer sans redémarrage.
+let overGeckoBudget = false;
+
+function checkGeckoBudget(tokenCount: number, scanIntervalMs: number): void {
+    const over = exceedsGeckoBudget(tokenCount, scanIntervalMs);
+    if (over === overGeckoBudget) return;
+    overGeckoBudget = over;
+    const callsPerMin = Math.round((tokenCount * 60_000) / scanIntervalMs);
+    if (over) {
+        logger.warn("indicator-alerter.gecko_budget.exceeded", {
+            tokens: tokenCount,
+            scanIntervalMs,
+            callsPerMin,
+            budgetPerMin: GECKO_CALLS_PER_MIN_BUDGET,
+            hint: "Risque de 429 si l'onglet /lp est ouvert : augmenter INDICATOR_SCAN_INTERVAL_MS.",
+        });
+    } else {
+        logger.info("indicator-alerter.gecko_budget.ok", { tokens: tokenCount, scanIntervalMs, callsPerMin });
+    }
 }
 
 async function runCycle(config: IndicatorAlerterConfig, notifiers: Notifier[]): Promise<void> {
@@ -140,6 +173,8 @@ async function runCycle(config: IndicatorAlerterConfig, notifiers: Notifier[]): 
         logger.info("indicator-alerter.cycle.empty_watchlist");
         return;
     }
+
+    checkGeckoBudget(watchlist.length, config.scanIntervalMs);
 
     const results = await Promise.allSettled(
         watchlist.map((entry) => processEntry(entry, config, state[entry.mint], notifiers))

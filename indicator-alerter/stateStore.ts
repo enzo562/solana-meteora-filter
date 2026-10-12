@@ -1,6 +1,7 @@
-// État persistant par mint : pool résolu (évite de re-résoudre à chaque cycle) et dernière
-// bougie 15m fermée déjà évaluée (idempotence : une bougie n'est jamais réévaluée deux fois,
-// et l'ajout d'un nouveau CA à la watchlist démarre par un amorçage silencieux — cf. index.ts).
+// État persistant par mint : pool résolu (évite de re-résoudre à chaque cycle), dernière bougie
+// 15m fermée déjà évaluée (idempotence : une bougie fermée n'est jamais réévaluée deux fois, et
+// l'ajout d'un nouveau CA à la watchlist démarre par un amorçage silencieux — cf. index.ts) et
+// dernière bougie ayant alerté (une bougie, même réévaluée en cours, n'alerte qu'une fois).
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -26,7 +27,7 @@ export async function writeState(filePath: string, state: StateMap): Promise<voi
 // sa propre entrée, sinon fusionner des copies de la map entière calculées depuis le même
 // instantané de départ écraserait les mises à jour des autres tokens du même cycle.
 export function nextTokenState(existing: TokenState | undefined, mint: string, patch: Partial<TokenState>): TokenState {
-    const base = existing ?? { mint, pool: null, lastProcessedCandleTs: null, updatedAt: 0 };
+    const base = existing ?? { mint, pool: null, lastProcessedCandleTs: null, lastAlertedCandleTs: null, updatedAt: 0 };
     return { ...base, ...patch, updatedAt: Date.now() };
 }
 

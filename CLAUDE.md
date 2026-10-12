@@ -75,7 +75,8 @@ type-checked only via `tsconfig.indicator-alerter.json`, no build step, run with
 JSON array of `{ "mint": "...", "label"?: "..." }` or bare mint strings, re-read every cycle so
 adding/removing a CA takes effect without a restart) — and sends a Discord/Telegram alert
 (reusing the same `ALERT_CHANNELS`/`DISCORD_WEBHOOK_URL`/`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`
-config as `alerter/`) when a combo **exit signal** fires on a **closed** 15-minute candle. These
+config as `alerter/`) when a combo **exit signal** fires on a 15-minute candle — the **in-progress**
+candle included (see below). These
 are **take-profit / exit signals on a bullish overextension, not entry signals**: the watchlist
 holds tokens the user is already in, and there is deliberately no entry signal and no position
 tracking (explicit product decision; the alert is titled « 🔴 SIGNAL DE SORTIE »). Visual
@@ -91,17 +92,31 @@ candle (`indicator-alerter/signalDetector.ts`, `REQUIRED_SIGNALS`) —
 Candles come from GeckoTerminal's free OHLCV endpoint (`api.geckoterminal.com`, no key), which is
 per-*pool* not per-mint, so `poolResolver.ts` resolves each watchlist mint to its most-liquid pool
 once and caches it in state. `indicators.ts` holds the pure indicator math (SMA/stddev/EMA/Wilder
-RSI); `ohlcvClient.ts` fetches and normalizes candles, always dropping the still-open candle
-(anti-repainting — signals are only ever evaluated on closed candles, per an explicit product
-decision). `stateStore.ts` persists, per mint, the resolved pool and the last processed closed
-candle timestamp: this makes evaluation idempotent (a candle is never re-evaluated) and gives a
-**silent bootstrap** — a newly-added watchlist entry registers its state on the first cycle
-without alerting, so it never fires immediately on a pre-existing condition. Each cycle also
+RSI); `ohlcvClient.ts` fetches candles and splits them into closed ones and the **in-progress**
+candle (`CandleSet`), whose close is the live price. **Intrabar alerts** (user decision,
+2026-10-09): every cycle (`INDICATOR_SCAN_INTERVAL_MS`, default **60 s** — it is now the maximum
+delay between the combo appearing and the alert) evaluates the new closed candles *and* the
+in-progress one, so an alert can fire before the close and the signal may vanish by then — the
+message says « en cours, non clôturée ». This **replaces** the original rule « signals only on
+closed candles (anti-repainting) », dropped for reactivity; don't restore it unknowingly.
+`planCycle` (`signalDetector.ts`, pure, tested) holds every alerting rule: **one alert max per
+candle** (`lastAlertedCandleTs` — seen intrabar, the candle stays silent at its close; a combo
+only visible at the close still alerts), one alert on the latest qualifying candle when catching
+up, and a **silent bootstrap** — a newly-added watchlist entry registers its state on the first
+cycle without alerting, and if the combo already holds on the in-progress candle that candle is
+marked as alerted, so it never fires immediately on a pre-existing condition. `stateStore.ts`
+persists, per mint, the resolved pool, the last processed **closed** candle timestamp (the only
+one `watchlist-api` reads; a closed candle is never re-evaluated) and `lastAlertedCandleTs`. Each cycle also
 **purges the state of mints no longer in the watchlist** (`purgeRemovedTokens`, also when the
 watchlist is empty), so a token removed then re-added bootstraps again instead of replaying old
 candles; an invalid watchlist JSON throws *before* the purge and leaves the state untouched — keep
 that order. A GeckoTerminal **404** on pool resolution means "no pool" (`resolveMostLiquidPool`
-returns `null`), not an outage; other API errors still throw. Each watchlist entry
+returns `null`), not an outage; other API errors still throw. Same on candles: only a **404**
+makes the alerter forget the cached pool (re-resolved next cycle); a 429 keeps it, since a
+re-resolution would cost one more call while rate-limited. GeckoTerminal's free tier is ~30
+calls/min per IP and the `/lp` tab uses ~24 of them when open, so the alerter (1 OHLCV call per
+token per cycle) logs `gecko_budget.exceeded` when it goes above ~6 calls/min
+(`exceedsGeckoBudget`). Each watchlist entry
 is processed in isolation (`Promise.allSettled` in `index.ts`) so one token's API failure never
 blocks the others. A volume-spike signal was considered and explicitly dropped from scope.
 Known gap: after a long alerter downtime, a token still in the watchlist replays the missed

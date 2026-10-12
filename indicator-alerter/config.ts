@@ -59,7 +59,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): IndicatorAlert
         );
     }
 
-    const scanIntervalMs = parseNumber(env.INDICATOR_SCAN_INTERVAL_MS, 120_000, "INDICATOR_SCAN_INTERVAL_MS");
+    // 60 s (120 s avant le 2026-10-09) : depuis que la bougie en cours est évaluée, l'intervalle est
+    // le délai maximal entre l'apparition de la combo et l'alerte. Plus bas, gare au budget
+    // GeckoTerminal (cf. exceedsGeckoBudget).
+    const scanIntervalMs = parseNumber(env.INDICATOR_SCAN_INTERVAL_MS, 60_000, "INDICATOR_SCAN_INTERVAL_MS");
     if (scanIntervalMs <= 0) throw new Error("INDICATOR_SCAN_INTERVAL_MS doit être positif.");
 
     // 300 (~3 jours de bougies 15m) laisse une marge confortable au-delà du minimum strict
@@ -81,4 +84,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): IndicatorAlert
         watchlistFilePath,
         stateFilePath,
     };
+}
+
+// GeckoTerminal gratuit : ~30 appels/min par IP, dont ~24 consommés par l'onglet /lp quand il est
+// ouvert sur la même machine (src/lib/lp/minuteVolume.ts, MIN_INTERVAL_MS). Il reste ~6 appels/min
+// pour ce service, qui fait 1 appel OHLCV par token et par cycle.
+export const GECKO_CALLS_PER_MIN_BUDGET = 6;
+
+export function exceedsGeckoBudget(tokenCount: number, scanIntervalMs: number): boolean {
+    return (tokenCount * 60_000) / scanIntervalMs > GECKO_CALLS_PER_MIN_BUDGET;
 }

@@ -35,12 +35,22 @@ export interface WatchlistEntry {
     label?: string;
 }
 
-// État persistant minimal par token : pool résolu (évite de re-résoudre à chaque cycle) et
-// dernière bougie 15m fermée déjà évaluée (idempotence + amorçage silencieux, cf. stateStore.ts).
+// Bougies d'un pool découpées par ohlcvClient.ts : les fermées (triées ancien -> récent) et la
+// bougie 15m en cours, dont le close est le prix actuel (null si aucun trade depuis son ouverture).
+export interface CandleSet {
+    closed: Candle[];
+    current: Candle | null;
+}
+
+// État persistant minimal par token : pool résolu (évite de re-résoudre à chaque cycle), dernière
+// bougie 15m FERMÉE déjà évaluée (idempotence + amorçage silencieux, cf. stateStore.ts) et
+// dernière bougie ayant déjà alerté (fermée ou en cours : une bougie n'alerte qu'une fois).
 export interface TokenState {
     mint: string;
     pool: string | null;
     lastProcessedCandleTs: number | null;
+    // Absent des fichiers d'état écrits avant 2026-10-09 : à lire avec `?? null`.
+    lastAlertedCandleTs: number | null;
     updatedAt: number;
 }
 
@@ -60,6 +70,7 @@ export interface IndicatorAlert {
     pool: string;
     price: number;
     candleTs: number;
+    inProgress: boolean; // bougie encore ouverte : le signal peut disparaître avant la clôture
     signals: SignalEvaluation;
 }
 
