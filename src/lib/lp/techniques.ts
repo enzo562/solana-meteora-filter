@@ -1,7 +1,9 @@
-// Interface commune des techniques de choix LP (docs/specs/lp-picker/PLAN.md §5). RG-01 : une
-// technique = une liste ; une technique ne lit jamais le verdict d'une autre.
+// Types communs des techniques de choix LP (docs/specs/lp-picker/PLAN.md §5). RG-01 : une
+// technique = une liste ; une technique ne lit jamais le verdict d'une autre. RG-10 (v4) : chaque
+// technique est un module autonome — sa logique dans src/lib/lp/<id>.ts, sa liste et ses résultats
+// de recherche dans src/pages/lp/ ; il n'y a donc plus d'`evaluate` commun ici.
 
-import type { MeteoraPool, PoolToken } from "./meteoraPools.ts";
+export type TechniqueId = "vladimir" | "tiago";
 
 export type VerdictLevel = "conforme" | "proche" | "hors-regle";
 
@@ -11,10 +13,7 @@ export interface PoolVerdict {
 }
 
 export interface Technique {
-    id: string;
+    id: TechniqueId;
     label: string;
     reminder: string; // rappel affiché sous le sélecteur
-    // `token` = le token évalué (celui de la ligne ou le CA recherché), jamais déduit de l'ordre
-    // token_x / token_y : dans une paire « USDC-TOKEN », token_x est l'USDC.
-    evaluate(pool: MeteoraPool, token: PoolToken): PoolVerdict;
 }

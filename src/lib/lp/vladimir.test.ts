@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { bestPool, evaluateVladimir, vladimirTechnique } from "./vladimir.ts";
+import { bestPool, evaluateVladimir, vladimirVerdict } from "./vladimir.ts";
 import { poolsForMint, WSOL_MINT } from "./meteoraPools.ts";
 import type { MeteoraPool } from "./meteoraPools.ts";
 
@@ -96,13 +96,13 @@ test("la technique évalue la market cap du token recherché, même s'il est en 
     const usdcFirst: MeteoraPool = { ...pool(500_000, 2, 150), name: "USDC-TOK", token_x: usdc, token_y: tok };
     // Règle < 1M attendue (TOK à 500k) : 2 % / bin step 150 est conforme. Avec la market cap d'USDC,
     // ce serait la règle ≥ 1M et donc hors règle.
-    assert.equal(vladimirTechnique.evaluate(usdcFirst, tok).level, "conforme");
+    assert.equal(vladimirVerdict(usdcFirst, tok).level, "conforme");
 });
 
 test("données réelles HIGGS (1,31M) : pools SOL hors règle, pool USDC 50 / 0,5 % conforme", () => {
     const raw = JSON.parse(readFileSync(new URL("./fixtures/meteora-query-higgs.json", import.meta.url), "utf8")) as MeteoraPool[];
     const higgs = poolsForMint(raw, "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump");
-    const verdicts = higgs.map((h) => ({ name: h.pool.name, solPair: h.solPair, cfg: `${h.pool.pool_config.bin_step}/${h.pool.pool_config.base_fee_pct}`, level: vladimirTechnique.evaluate(h.pool, h.token).level }));
+    const verdicts = higgs.map((h) => ({ name: h.pool.name, solPair: h.solPair, cfg: `${h.pool.pool_config.bin_step}/${h.pool.pool_config.base_fee_pct}`, level: vladimirVerdict(h.pool, h.token).level }));
 
     assert.ok(verdicts.filter((v) => v.solPair).every((v) => v.level === "hors-regle"), JSON.stringify(verdicts));
     assert.deepEqual(verdicts.filter((v) => v.level !== "hors-regle"), [{ name: "HIGGS-USDC", solPair: false, cfg: "50/0.5", level: "conforme" }]);

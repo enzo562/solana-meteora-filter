@@ -1,0 +1,80 @@
+[
+  {
+    "chainId": "solana",
+    "dexId": "raydium",
+    "pairAddress": "6fNtUWWpf9VckoZXce7pFUyxA9wPRVPpe83txqdYFiCn",
+    "baseToken": {
+      "address": "HTmQz7My6MehV7bjhJ6jde8nDND1yvsz68d24LP7YgUQ",
+      "name": "RuneScape Gold",
+      "symbol": "GP"
+    },
+    "quoteToken": {
+      "address": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+      "name": "Gold xStock",
+      "symbol": "GLDx"
+    },
+    "priceChange": {
+      "m5": -0.16,
+      "h1": -1.49,
+      "h6": -1.47,
+      "h24": -18.09
+    },
+    "liquidity": {
+      "usd": 154482.71,
+      "base": 38812427,
+      "quote": 202.2405
+    }
+  },
+  {
+    "chainId": "solana",
+    "dexId": "pumpswap",
+    "pairAddress": "BFrSZakeqNzVtM3EFhroo4eRhagmmWN8BRntiQKFH6Ru",
+    "baseToken": {
+      "address": "DoVAVzViX8Bjy3r15nwikSaSbzE6dV4ovd28aWpJpump",
+      "name": "Higgspad",
+      "symbol": "HIGGS"
+    },
+    "quoteToken": {
+      "address": "So11111111111111111111111111111111111111112",
+      "name": "Wrapped SOL",
+      "symbol": "SOL"
+    },
+    "priceChange": {
+      "m5": 1.71,
+      "h1": -7.83,
+      "h6": -27.42,
+      "h24": -41.65
+    },
+    "liquidity": {
+      "usd": 99316.06,
+      "base": 89765150,
+      "quote": 455.3858
+    }
+  },
+  {
+    "chainId": "solana",
+    "dexId": "orca",
+    "pairAddress": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+    "baseToken": {
+      "address": "So11111111111111111111111111111111111111112",
+      "name": "Wrapped SOL",
+      "symbol": "SOL"
+    },
+    "quoteToken": {
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "name": "USD Coin",
+      "symbol": "USDC"
+    },
+    "priceChange": {
+      "m5": 0.01,
+      "h1": -1.32,
+      "h6": -1.77,
+      "h24": -3.33
+    },
+    "liquidity": {
+      "usd": 28641907.71,
+      "base": 207853,
+      "quote": 6404326
+    }
+  }
+]

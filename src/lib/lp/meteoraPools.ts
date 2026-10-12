@@ -90,6 +90,7 @@ export interface PoolOfToken {
 export interface TokenGroup {
     token: PoolToken;
     volume24h: number; // somme des volumes 24 h de ses pools retenus
+    fees24h: number; // somme des frais 24 h de ses pools retenus (classement de Tiago, §12)
     pools: MeteoraPool[];
 }
 
@@ -115,8 +116,9 @@ export function autoListCandidates(pools: MeteoraPool[]): PoolOfToken[] {
 export function groupByToken(candidates: PoolOfToken[]): TokenGroup[] {
     const groups = new Map<string, TokenGroup>();
     for (const { pool, token } of candidates) {
-        const group = groups.get(token.address) ?? { token, volume24h: 0, pools: [] };
+        const group = groups.get(token.address) ?? { token, volume24h: 0, fees24h: 0, pools: [] };
         group.volume24h += pool.volume["24h"] ?? 0;
+        group.fees24h += pool.fees["24h"] ?? 0;
         group.pools.push(pool);
         groups.set(token.address, group);
     }
@@ -146,6 +148,11 @@ async function fetchPools(params: string, signal?: AbortSignal): Promise<Meteora
 export function fetchTopPoolsByVolume(signal?: AbortSignal): Promise<MeteoraPool[]> {
     // `sort_by=volume.24h:desc` renvoie une liste vide : la bonne clé est volume_24h.
     return fetchPools(`page=1&page_size=${AUTO_LIST_PAGE_SIZE}&sort_by=volume_24h:desc`, signal);
+}
+
+// Liste de Tiago (§12.2) : la clé de tri est fee_24h (`fees_24h` est refusée par l'API).
+export function fetchTopPoolsByFees(signal?: AbortSignal): Promise<MeteoraPool[]> {
+    return fetchPools(`page=1&page_size=${AUTO_LIST_PAGE_SIZE}&sort_by=fee_24h:desc`, signal);
 }
 
 export function fetchPoolsByQuery(mint: string, signal?: AbortSignal): Promise<MeteoraPool[]> {

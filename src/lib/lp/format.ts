@@ -13,6 +13,17 @@ export function formatCompact(value: number): string {
     return String(Math.round(value));
 }
 
+// Adresse abrégée pour l'affichage : « DoVAVz…pump ».
+export function shortAddr(addr: string): string {
+    return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+// Variation de prix signée à une décimale (DexScreener priceChange : -18.09 → "-18,1 %").
+export function formatChange(value: number): string {
+    const sign = value > 0 ? "+" : "";
+    return `${sign}${decimal(value, 1)} %`;
+}
+
 // Pourcentage tel que fourni par Meteora (base_fee_pct : 0.3 = 0,3 %).
 export function formatPct(value: number): string {
     return `${String(value).replace(".", ",")} %`;

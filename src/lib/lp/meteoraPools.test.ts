@@ -85,6 +85,14 @@ test("groupByToken regroupe par token, somme les volumes et trie par volume déc
     );
 });
 
+test("groupByToken somme aussi les frais 24 h de chaque token", () => {
+    const a = token("AAAA");
+    const groups = groupByToken(
+        autoListCandidates([pool(a, SOL, 100, { fees: { "24h": 40 } }), pool(SOL, a, 300, { fees: { "24h": 2 } })])
+    );
+    assert.equal(groups[0].fees24h, 42);
+});
+
 test("poolsForMint ne garde que les pools du mint exact et signale les paires non-SOL (RG-06)", () => {
     const target = token("TARGET");
     const lookalike = token("TARGET2");
