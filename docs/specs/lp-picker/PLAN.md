@@ -2,9 +2,11 @@
 
 > Un onglet **`/lp`** qui aide à choisir **sur quel pool DLMM Meteora fournir de la liquidité**, selon
 > une **technique** choisie dans un sélecteur. Chaque technique produit **sa propre liste**. La version 1
-> ne contient qu'une technique : les **règles de Vladimir** (choix du pool selon la market cap).
+> ne contient qu'une technique : les **règles de Vladimir** (choix du pool selon la market cap) ; la v4
+> ajoute la technique de **Tiago** (traction par les frais 24 h et tendance haussière, §12).
 >
-> Statut : **implémenté** (v2, 2026-10-07, branche `feat/lp-picker`) ; **v3 (volume 1 min) en cours**. Version 3 — 2026-10-07 (cf. Historique).
+> Statut : **implémenté** — v1–v3 dans `main` (2026-10-12), v4 (Tiago, listes par technique) sur la branche
+> `feat/lp-tiago` (2026-10-13). Version 5 — 2026-10-13 (cf. Historique).
 > Cibles : `src/pages/LpPickerPage.tsx`, `src/lib/lp/` (logique pure), `src/App.tsx` ; en option
 > `src/pages/TokenScannerPage.tsx` (lecture de `?ca=`).
 
@@ -15,6 +17,8 @@
 | v1 | 2026-10-06 | Plan initial, issu d'une séance de cadrage avec Enzo | Outiller l'étape « choisir le pool » de son workflow LP |
 | v2 | 2026-10-07 | **Implémenté** (Lots 0 à 4, scanner `?ca=` compris). Écarts : registre des techniques dans `registry.ts` (et non `techniques.ts`) pour éviter un import circulaire ; `formatCompact` / `formatPct` dans `format.ts` ; lignes dépliées rendues en sous-tableau ; en cas d'échec du rafraîchissement, la liste garde ses dernières données sous le bandeau d'erreur ; `MAJOR_MINTS` relevé sur les 500 premiers pools (Q1 toujours à valider) | Constats d'implémentation ; l'aperçu du 2026-10-07 montre que la liste est dominée par les grosses capitalisations — Enzo a choisi d'implémenter tel quel et d'ajuster ensuite |
 | v3 | 2026-10-07 | Ajout du **volume 1 min** (et 5 min) par pool, via les bougies minute de GeckoTerminal, dans la recherche par CA, les lignes dépliées **et la liste** (meilleur pool), avec une file d'attente commune limitée à 1 appel / 2,5 s (§11) | Demande d'Enzo. Meteora ne descend pas sous 30 min, DexScreener ne connaît pas tous les pools DLMM ; GeckoTerminal est la seule source minute, mais à un appel par pool et avec une limite partagée avec `indicator-alerter` |
+| v4 | 2026-10-12 | Technique **Tiago** (§12) et **chaque technique construit sa propre liste** (RG-10) : l'interface commune `evaluate(pool, token)` et la liste unique triée par volume (§5 jusqu'à la v3) sont remplacées par un module par technique (logique pure + composants de liste et de recherche). Seuils Tiago : plancher de 1 000 $ de frais 24 h par pool, tendance DexScreener ✅ 24 h > 0 et 1 h > 0, 🟡 1 h jusqu'à −10 % | Tiago ne juge ni le bin step ni les frais de base mais le token (frais générés, tendance) et a besoin d'un autre tri et d'une donnée externe asynchrone ; Enzo a préféré des listes autonomes à une interface élargie (`sortBy`, `needsTrend`), pour laisser Evil panda et Quick in and out libres de leur forme. Les seuils sont des choix d'Enzo : l'article de Tiago ne donne aucun chiffre |
+| v5 | 2026-10-13 | **v4 implémentée** (Lots 6 à 8). Écarts : hooks partagés dans `src/pages/lp/hooks.ts` (`useAutoRefresh`, `useExpanded`, `useListMinuteVolumes`) et props des vues dans `types.ts`, au lieu d'un seul `useAutoRefresh.ts` ; la colonne « Frais 24h » est ajoutée aussi au tableau de la recherche par CA (tableau partagé), pas seulement aux lignes dépliées ; `vladimirTechnique.evaluate` devient `vladimirVerdict(pool, token)` ; la cellule « Meilleur pool » de Tiago affiche aussi ses frais 24 h. Constats : `tokens/v1` de DexScreener renvoie une seule paire par token (celle où il est la base, la plus liquide) ; quand DexScreener est indisponible, tous les pools passent 🟡 et la liste Tiago montre donc plus de tokens (conséquence voulue de RG-11) | Constats d'implémentation ; vérifié dans Chrome le 2026-10-13 (Vladimir identique avant / après, liste Tiago, $GP, panne DexScreener simulée) |
 
 ---
 
@@ -46,6 +50,13 @@ bon pool », et propose aussi une liste de tokens candidats.
 - **approche A** : tout dans la page, appels directs à l'API Meteora, logique en modules purs testés,
   aucun backend.
 
+**Décisions d'Enzo (2026-10-12, v4) :**
+- **Tiago** est la deuxième technique (source relue le 2026-10-12 : article de @tiiagoslb, §12) ;
+- **chaque technique construit sa propre liste** (appels, tri, colonnes, rafraîchissement) ; la page
+  ne garde que le commun (RG-10). L'option « élargir l'interface commune » a été écartée ;
+- seuils Tiago (choix d'Enzo, Tiago n'en donne aucun) : plancher **1 000 $** de frais 24 h par pool,
+  tendance **✅ 24 h > 0 et 1 h > 0**, **🟡 24 h > 0 et 1 h entre −10 % et 0**.
+
 **Inclus :** sélecteur de technique (une entrée), recherche par CA, liste automatique rafraîchie
 toutes les 60 s, verdicts ✅/🟡/❌ avec raisons, liens Meteora / DexScreener / sécurité.
 
@@ -67,6 +78,9 @@ automatiques (RugCheck dans la liste, Bubblemaps…) ; alertes ; simulation de P
 | RG-06 | La recherche par CA ne garde que les pools dont `token_x` ou `token_y` **est exactement** le CA saisi (le paramètre `query` de l'API est une recherche, pas un filtre exact). |
 | RG-07 | Les deux blocs (recherche, liste) sont **isolés** : l'échec de l'un n'affecte pas l'autre. |
 | RG-08 | Aucune écriture, aucune transaction, aucun wallet : l'onglet est **en lecture seule**. |
+| RG-10 | **Une technique = un module autonome** (v4) : logique pure dans `src/lib/lp/<id>.ts`, liste et résultats de recherche dans `src/pages/lp/<Id>*.tsx`. La page `/lp` ne contient ni tri, ni verdict, ni appel propre à une technique. |
+| RG-11 | La tendance Tiago vient de **DexScreener** (`priceChange`, en USD), prise sur la paire où le token est `baseToken`, celle à la plus forte liquidité. Tendance absente ou appel en échec → 🟡 « tendance inconnue », jamais ✅. |
+| RG-12 | Tous les seuils Tiago sont des **constantes en tête de `tiago.ts`** (comme RG-04). |
 
 ---
 
@@ -143,37 +157,37 @@ Champs : `address`, `name`, `token_x` / `token_y` (`address`, `symbol`, `market_
 
 ## 5. Architecture (approche A)
 
+Depuis la v4 (RG-10), chaque technique est un module autonome. Jusqu'à la v3, une interface commune
+`evaluate(pool, token)` notait les pools et la page construisait une liste unique triée par volume ;
+elle ne convenait pas à Tiago (autre tri, donnée externe asynchrone), cf. Historique.
+
 ```
-src/lib/lp/
-├── meteoraPools.ts        types de l'API, appels, filtres (paire SOL, majors, blacklist, market cap),
-│                          regroupement par token — pur sauf les deux fonctions fetch
-├── meteoraPools.test.ts
-├── techniques.ts          interface commune + registre des techniques (v1 : Vladimir)
-├── vladimir.ts            règle §3.1, constantes RG-04, choix du meilleur pool
-└── vladimir.test.ts
-src/pages/LpPickerPage.tsx affichage seul : sélecteur, recherche par CA, liste, liens
-```
-
-Interface commune (esquisse) :
-
-```ts
-export type VerdictLevel = "conforme" | "proche" | "hors-regle";
-
-export interface PoolVerdict {
-    level: VerdictLevel;
-    reasons: string[]; // vide si conforme
-}
-
-export interface Technique {
-    id: string;          // "vladimir"
-    label: string;       // "Règles de Vladimir"
-    reminder: string;    // rappel affiché sous le sélecteur
-    evaluate(pool: MeteoraPool, token: PoolToken): PoolVerdict;
-}
+src/lib/lp/                       pur, testé (node:test)
+├── techniques.ts                 Technique = { id, label, reminder } ; PoolVerdict, VerdictLevel
+├── registry.ts                   TECHNIQUES = [vladimir, tiago] (métadonnées), technique par défaut
+├── meteoraPools.ts               types, appels (par volume, par frais, par CA), filtres, regroupement
+│                                 par token (sommes volume et frais 24 h, tri par volume)
+├── vladimir.ts                   règle §3.1, constantes RG-04, meilleur pool (volume)
+├── tiago.ts                      règle §12, constantes RG-12, meilleur pool (frais), lignes de la liste
+├── dexscreenerTrend.ts           priceChange 1 h / 6 h / 24 h par token, par lots de 30 (RG-11)
+├── minuteVolume.ts               file GeckoTerminal (§11, RG-09)
+└── format.ts                     formatCompact, formatPct, shortAddr
+src/pages/lp/                     React, vérifié dans Chrome (pas de test de rendu)
+├── views.ts                      Record<TechniqueId, { List, CaResults }> : tsc impose une vue par technique
+├── types.ts                      ListProps, CaResultsProps
+├── hooks.ts                      useAutoRefresh (montage + 60 s), useExpanded, useListMinuteVolumes, errorMessage
+├── shared.tsx                    VerdictCell, MinuteVolumeCells, PoolLinks, SecurityLinks, PoolDetails, CaPoolsTable
+├── VladimirList.tsx / VladimirCaResults.tsx
+└── TiagoList.tsx / TiagoCaResults.tsx
+src/pages/LpPickerPage.tsx        sélecteur, rappel, champ CA + appel Meteora, file GeckoTerminal ;
+                                  rend la liste et les résultats CA de la technique choisie
 ```
 
-Ajouter Tiago plus tard : un fichier `tiago.ts` qui implémente `Technique` (et ses propres données si
-besoin), inscrit dans le registre. Rien d'autre ne change (RG-01).
+- `views.ts` est séparé, et les hooks et helpers sont hors des `.tsx`, pour respecter
+  `react-refresh/only-export-components`.
+- Changer de technique démonte la liste précédente, ce qui arrête son rafraîchissement.
+- **Ajouter une technique** demande : `src/lib/lp/<id>.ts` avec ses tests, une ligne dans `registry.ts`,
+  une ligne dans `views.ts` et ses deux composants. Rien d'autre ne change (RG-01, RG-10).
 
 Conventions reprises : classes CSS partagées (`page`, `data-table`, `alert`, `btn`, `scan-input`,
 `badge`…), textes en français, `isValidSolanaAddress` de `src/lib/solanaAddress.ts` pour la saisie,
@@ -186,7 +200,8 @@ Conventions reprises : classes CSS partagées (`page`, `data-table`, `alert`, `b
 ## 6. Page `/lp`
 
 - **Navigation** : `{ to: "/lp", label: "Choix LP" }` dans `NAV_ITEMS`, route dans `src/App.tsx`.
-- **Sélecteur** : une entrée en v1 (« Règles de Vladimir ») + son rappel de forme.
+- **Sélecteur** : « Règles de Vladimir » (par défaut) et « Méthode de Tiago » (v4), avec le rappel de
+  la technique choisie.
 - **Recherche par CA** : champ + bouton (et Entrée) ; validation locale ; tableau de tous les pools du
   token (RG-06) avec verdict et raisons ; paires non-SOL marquées ; liens pool Meteora
   (`https://app.meteora.ag/dlmm/<pool>`) et DexScreener (`https://dexscreener.com/solana/<pool>`).
@@ -210,8 +225,14 @@ Conventions reprises : classes CSS partagées (`page`, `data-table`, `alert`, `b
 | 3 | Liens de sécurité ; option : le scanner lit `?ca=` et lance l'analyse | Must (liens) / Could (scanner) | Clic sur chaque lien → bon outil sur le bon CA |
 | 4 | `CLAUDE.md` (route, page, `src/lib/lp/`), statut et Historique de ce plan | Must | Relecture |
 
+| 6 | v4 — refactor sans changement de comportement : `Technique` réduit, `src/pages/lp/` (shared, hooks, types, views, VladimirList, VladimirCaResults), page allégée | `npx tsc -b`, `npm test`, eslint ; Chrome **avant / après** : HIGGS en recherche CA (pools ❌ + pool USDC ✅ « paire non-SOL »), haut de liste identique, dépliage, Vol 1 min. Seul changement visible : colonne « Frais 24h » dans les lignes dépliées (prévue au §3.2, manquante) et dans la recherche par CA. **Fait (2026-10-13)** |
+| 7 | v4 — `dexscreenerTrend.ts`, `tiago.ts` + tests, `fetchTopPoolsByFees`, `TokenGroup.fees24h` | `npm test` : bornes 800 / 1 000 $, 1 h à 0 et −10 %, 24 h à 0, tendance inconnue, pire des deux, meilleur pool par frais, tri par frais ; `pickTrend` sur une réponse DexScreener réelle figée ; lots de 30 |
+| 8 | v4 — `TiagoList`, `TiagoCaResults`, registre, vues, rappel | Chrome : liste triée par frais, colonnes 1 h / 24 h, verdicts et raisons ; $GP en recherche CA ; DexScreener bloqué → bandeau + 🟡 « tendance inconnue », liste intacte ; retour à Vladimir inchangé. **Fait (2026-10-13)** ; validation métier d'Enzo à faire |
+| 9 | v4 — statut et Historique de ce plan, `CLAUDE.md` | Relecture |
+
 **Validation métier** (fin du Lot 2) : Enzo compare 2 ou 3 tokens de la liste avec le pool qu'il
-aurait choisi à la main en appliquant la règle de Vladimir.
+aurait choisi à la main en appliquant la règle de Vladimir. **Tiago** (fin du Lot 8) : même exercice
+en suivant l'article.
 
 ---
 
@@ -225,7 +246,12 @@ aurait choisi à la main en appliquant la règle de Vladimir.
   volumes, filtre exact de la recherche par CA (RG-06).
 - **Jeu de données réel figé** : un extrait de réponse Meteora du jour (dont les pools de HIGGS) dans
   `src/lib/lp/fixtures/`, pour vérifier les verdicts sur de vrais pools.
-- Pas de test de rendu React (convention du projet) : la page est vérifiée dans Chrome (Lots 1-2).
+- `src/lib/lp/tiago.test.ts` (v4) : chaque borne (800 / 1 000 $ ; 1 h à 0 et −10 % ; 24 h à 0),
+  tendance inconnue ou partielle, pire des deux critères et raisons, meilleur pool (verdict puis frais),
+  tri des lignes par frais 24 h.
+- `src/lib/lp/dexscreenerTrend.test.ts` (v4) : choix de la paire (token en base, plus forte liquidité,
+  token seulement en quote ignoré) sur une **réponse réelle figée** (`fixtures/`), découpage par lots de 30.
+- Pas de test de rendu React (convention du projet) : la page est vérifiée dans Chrome (Lots 1-2, 6, 8).
 
 ---
 
@@ -238,6 +264,10 @@ aurait choisi à la main en appliquant la règle de Vladimir.
 | R2 | Market cap Meteora approximative ou absente (`0`) sur certains tokens | Market cap absente ou nulle → token écarté de la liste, verdict « market cap inconnue » dans la recherche par CA |
 | R3 | Volume de la ligne calculé seulement sur les pools présents dans les 200 chargés | Limite assumée et indiquée en info-bulle ; `page_size` en constante |
 | R4 | Limite de requêtes de l'API | Un seul appel par minute pour la liste ; la recherche par CA est manuelle |
+| R5 | `priceChange` DexScreener est **en USD** : une chute du SOL peut faire paraître baissier un token stable face au SOL | Limite assumée, indiquée en info-bulle de la colonne 1 h / 24 h ; à revoir si gênant à l'usage |
+| R6 | DexScreener ne connaît pas tous les tokens ; CORS de `tokens/v1` | CORS vérifié dans Chrome (2026-10-13) ; token absent → 🟡 « tendance inconnue » (RG-11) |
+| R7 | Les seuils Tiago (1 000 $, −10 %) sont arbitraires | Constantes RG-12 ; Enzo ajuste à l'usage |
+| R8 | Le refactor du Lot 6 casse Vladimir sans qu'un test le voie (pas de test React) | Logique pure inchangée et testée ; comparaison avant / après dans Chrome |
 
 ---
 
@@ -288,3 +318,55 @@ vers le bas.
 **État du Lot 5 (2026-10-07)** : code et tests faits (48/48). Vérifié dans Chrome : colonnes présentes, file à
 2,5 s, pause de 30 s sur échec. **Pas encore vérifié en réel : l'affichage d'une valeur**, car GeckoTerminal renvoyait
 du 429 en continu ce soir-là (même via `curl`, file en pause). À refaire quand la limite est levée.
+
+---
+
+## 12. La technique « Tiago » (v4)
+
+**Source** (relue le 2026-10-12) : article X de @tiiagoslb, 24 sept. 2026, « comment je sélectionne mes
+runners (exemple $GP) ». Ce qu'il dit, **sans aucun chiffre** :
+- **traction** : des coins qui attirent du volume **et génèrent des frais** ; point de départ :
+  Discover de Meteora (Top Performers, frais 24 h) ;
+- **tendance haussière au moment d'entrer**, « dynamique encore visible » ; pas d'entrée si le prix
+  est « en chute libre », mais les petits retracements génèrent beaucoup de frais ;
+- **setup** : 1/3 Spot + 2/3 Bid-Ask, borne basse vers −70 % (niveau de Fibonacci) ;
+- **sortie** : bougies 1 h, RSI(2) > 90 **et** prix qui touche la bande haute de Bollinger.
+
+Aucune règle de bin step ni de frais de base : le verdict porte sur les frais générés par le pool et
+sur la tendance du token.
+
+### 12.1 Verdict d'un pool
+
+Le pire des deux critères ; les raisons des deux sont affichées.
+
+| Critère | ✅ | 🟡 | ❌ |
+|---|---|---|---|
+| Frais 24 h du pool (`fees["24h"]`) | ≥ 1 000 $ | 800–1 000 $ (tolérance 20 %) | < 800 $ |
+| Tendance du token (DexScreener, RG-11) | 24 h > 0 et 1 h > 0 | 24 h > 0 et −10 % ≤ 1 h ≤ 0 ; ou tendance inconnue | 24 h ≤ 0, ou 1 h < −10 % |
+
+Exemples de raisons : « frais 24 h 650 $ sous le plancher 1 000 $ », « petit retracement 1 h : −3,2 % »,
+« 24 h en baisse : −18,7 % », « tendance inconnue (DexScreener) ».
+
+### 12.2 Liste automatique
+
+- `GET /pools?page=1&page_size=200&sort_by=fee_24h:desc` (constaté le 2026-10-12 ; `fees_24h` est refusé).
+- Même filtre de base que Vladimir (`autoListCandidates`, RG-05), regroupement par token, **tri par
+  frais 24 h du token** (somme de ses pools SOL chargés).
+- Puis `GET https://api.dexscreener.com/tokens/v1/solana/<mint1,…,mint30>` **par lot de 30 tokens**
+  (environ 3 appels par rafraîchissement ; limite DexScreener 300/min). Échec → liste affichée quand même,
+  bandeau « Tendance indisponible », verdicts 🟡 « tendance inconnue ».
+- Colonnes : Token, Mcap, Frais 24h, 1 h / 24 h, Vol 1 min (meilleur pool, file RG-09), ✅ / 🟡,
+  Meilleur pool, Sécurité. Rafraîchissement 60 s, case « afficher aussi les tokens sans pool retenu »,
+  lignes dépliables.
+- **Meilleur pool** : le meilleur verdict, puis le plus de frais 24 h.
+
+### 12.3 Recherche par CA
+
+Tous les pools du token (RG-06), verdict Tiago pour chacun, un appel DexScreener pour ce token ;
+« … » dans les verdicts tant qu'il n'a pas répondu.
+
+### 12.4 Rappel sous le sélecteur
+
+« Forme : 1/3 Spot + 2/3 Bid-Ask, borne basse vers −70 % (Fibonacci). Sortie : bougies 1 h, RSI(2) > 90
+et prix qui touche la bande haute de Bollinger. » La sortie n'est **pas** implémentée ; elle diffère de
+celle d'`indicator-alerter` (15 min, 2 sur 3, clôture au-dessus de la bande).
